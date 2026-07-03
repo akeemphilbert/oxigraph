@@ -3,7 +3,6 @@ Feature: SPARQL JSON result term parsing
   I want SPARQL JSON result terms to parse into native Go term values
   So that later query results surface as typed terms instead of raw JSON
 
-  @wip
   Scenario: A uri term parses into a named node
     When the developer parses the SPARQL JSON term:
       """
@@ -11,7 +10,6 @@ Feature: SPARQL JSON result term parsing
       """
     Then the parsed term equals the named node "http://example.com/person/alice"
 
-  @wip
   Scenario: A bnode term parses into a blank node
     When the developer parses the SPARQL JSON term:
       """
@@ -19,7 +17,6 @@ Feature: SPARQL JSON result term parsing
       """
     Then the parsed term equals the blank node with the identifier "b0"
 
-  @wip
   Scenario: A plain literal term parses into a literal
     When the developer parses the SPARQL JSON term:
       """
@@ -27,7 +24,6 @@ Feature: SPARQL JSON result term parsing
       """
     Then the parsed term equals the literal "Alice"
 
-  @wip
   Scenario: A language-tagged literal term parses with its language
     When the developer parses the SPARQL JSON term:
       """
@@ -35,7 +31,6 @@ Feature: SPARQL JSON result term parsing
       """
     Then the parsed term equals the language-tagged literal "Alicia" with the language "es"
 
-  @wip
   Scenario: A typed literal term parses with its datatype
     When the developer parses the SPARQL JSON term:
       """
@@ -43,7 +38,6 @@ Feature: SPARQL JSON result term parsing
       """
     Then the parsed term equals the typed literal "42" with the datatype "http://www.w3.org/2001/XMLSchema#integer"
 
-  @wip
   Scenario: A uri term with an invalid IRI is rejected
     When the developer parses the SPARQL JSON term:
       """
@@ -51,7 +45,6 @@ Feature: SPARQL JSON result term parsing
       """
     Then the parsing fails with an invalid IRI error
 
-  @wip
   Scenario: A term with an unrecognized type is rejected
     When the developer parses the SPARQL JSON term:
       """
@@ -59,7 +52,6 @@ Feature: SPARQL JSON result term parsing
       """
     Then the parsing fails with an unsupported term type error
 
-  @wip
   Scenario: A term missing its value is rejected
     When the developer parses the SPARQL JSON term:
       """
