@@ -80,44 +80,35 @@ func ParseTerm(s string) (Term, error) {
 	return term, nil
 }
 
-// ParseNamedNode parses a named node in N-Quads syntax: <iri>.
-func ParseNamedNode(s string) (NamedNode, error) {
+// parseTermAs parses a term and requires it to be a specific concrete
+// term type, described by label in the error on mismatch.
+func parseTermAs[T Term](s, label string) (T, error) {
+	var zero T
 	term, err := ParseTerm(s)
 	if err != nil {
-		return NamedNode{}, err
+		return zero, err
 	}
-	n, ok := term.(NamedNode)
+	t, ok := term.(T)
 	if !ok {
-		return NamedNode{}, &ParseError{Kind: ErrSyntax, Input: s, Detail: "expected a named node"}
+		return zero, &ParseError{Kind: ErrSyntax, Input: s, Detail: "expected a " + label}
 	}
-	return n, nil
+	return t, nil
+}
+
+// ParseNamedNode parses a named node in N-Quads syntax: <iri>.
+func ParseNamedNode(s string) (NamedNode, error) {
+	return parseTermAs[NamedNode](s, "named node")
 }
 
 // ParseBlankNode parses a blank node in N-Quads syntax: _:id.
 func ParseBlankNode(s string) (BlankNode, error) {
-	term, err := ParseTerm(s)
-	if err != nil {
-		return BlankNode{}, err
-	}
-	b, ok := term.(BlankNode)
-	if !ok {
-		return BlankNode{}, &ParseError{Kind: ErrSyntax, Input: s, Detail: "expected a blank node"}
-	}
-	return b, nil
+	return parseTermAs[BlankNode](s, "blank node")
 }
 
 // ParseLiteral parses a literal in N-Quads syntax:
 // "value"[@lang | ^^<datatype>].
 func ParseLiteral(s string) (Literal, error) {
-	term, err := ParseTerm(s)
-	if err != nil {
-		return Literal{}, err
-	}
-	l, ok := term.(Literal)
-	if !ok {
-		return Literal{}, &ParseError{Kind: ErrSyntax, Input: s, Detail: "expected a literal"}
-	}
-	return l, nil
+	return parseTermAs[Literal](s, "literal")
 }
 
 // readTerm reads one term from the front of s, after leading whitespace,

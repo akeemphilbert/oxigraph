@@ -105,6 +105,36 @@ func termTable(table *godog.Table) (map[string]string, error) {
 	return fields, nil
 }
 
+// registerEqualitySteps wires the compare/equal/not-equal step trio for a
+// kind of value ("term", "triple", "quad") over its comparison stack.
+func registerEqualitySteps[T comparable](sc *godog.ScenarioContext, w *world, noun string, items *[]T) {
+	sc.Step(`^the developer compares the two `+noun+`s$`, func() error {
+		if len(*items) != 2 {
+			return fmt.Errorf("expected two %ss on the stack, have %d", noun, len(*items))
+		}
+		w.equal, w.compared = (*items)[0] == (*items)[1], true
+		return nil
+	})
+	sc.Step(`^the `+noun+`s are equal$`, func() error {
+		if !w.compared {
+			return errors.New("no comparison happened")
+		}
+		if !w.equal {
+			return fmt.Errorf("the %ss %v and %v are not equal", noun, (*items)[0], (*items)[1])
+		}
+		return nil
+	})
+	sc.Step(`^the `+noun+`s are not equal$`, func() error {
+		if !w.compared {
+			return errors.New("no comparison happened")
+		}
+		if w.equal {
+			return fmt.Errorf("the %ss %v and %v are equal", noun, (*items)[0], (*items)[1])
+		}
+		return nil
+	})
+}
+
 // tripleFromTable builds a Triple from a subject/predicate/object table,
 // parsing each cell with the same term parser the library ships.
 func tripleFromTable(table *godog.Table) (oxigraph.Triple, error) {
@@ -112,6 +142,11 @@ func tripleFromTable(table *godog.Table) (oxigraph.Triple, error) {
 	if err != nil {
 		return oxigraph.Triple{}, err
 	}
+	return tripleFromFields(fields)
+}
+
+// tripleFromFields builds a Triple from an already-collected field map.
+func tripleFromFields(fields map[string]string) (oxigraph.Triple, error) {
 	subjectTerm, err := oxigraph.ParseTerm(fields["subject"])
 	if err != nil {
 		return oxigraph.Triple{}, fmt.Errorf("subject: %w", err)
@@ -134,11 +169,11 @@ func tripleFromTable(table *godog.Table) (oxigraph.Triple, error) {
 // quadFromTable builds a Quad from a triple table with an optional
 // graph-name row; a missing row means the default graph.
 func quadFromTable(table *godog.Table) (oxigraph.Quad, error) {
-	triple, err := tripleFromTable(table)
+	fields, err := termTable(table)
 	if err != nil {
 		return oxigraph.Quad{}, err
 	}
-	fields, err := termTable(table)
+	triple, err := tripleFromFields(fields)
 	if err != nil {
 		return oxigraph.Quad{}, err
 	}

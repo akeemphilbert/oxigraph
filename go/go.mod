@@ -1,6 +1,6 @@
 module github.com/akeemphilbert/oxigraph/go
 
-go 1.25.4
+go 1.23
 
 require github.com/cucumber/godog v0.15.1
 

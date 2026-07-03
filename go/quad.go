@@ -2,7 +2,10 @@ package oxigraph
 
 // Quad is an RDF triple in a graph, mirroring pyoxigraph's Quad. The
 // fields hold already-validated terms, so they are exported; two quads are
-// equal exactly when == reports true.
+// equal exactly when == reports true. Construct quads with NewQuad: a
+// struct literal that leaves GraphName nil renders like a default-graph
+// quad but does not compare equal to one whose GraphName is
+// DefaultGraph().
 type Quad struct {
 	Subject   Subject
 	Predicate NamedNode
@@ -29,7 +32,7 @@ func (q Quad) Triple() Triple {
 // graph name is omitted when it is the default graph, matching
 // pyoxigraph's str(Quad).
 func (q Quad) String() string {
-	s := q.Subject.String() + " " + q.Predicate.String() + " " + q.Object.String()
+	s := q.Triple().String()
 	if q.GraphName == nil || q.GraphName == GraphName(DefaultGraph()) {
 		return s
 	}

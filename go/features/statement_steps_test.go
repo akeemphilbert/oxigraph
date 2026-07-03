@@ -54,31 +54,7 @@ func registerStatementSteps(sc *godog.ScenarioContext, w *world) {
 		}
 		return nil
 	})
-	sc.Step(`^the developer compares the two triples$`, func() error {
-		if len(w.triples) != 2 {
-			return fmt.Errorf("expected two triples, have %d", len(w.triples))
-		}
-		w.equal, w.compared = w.triples[0] == w.triples[1], true
-		return nil
-	})
-	sc.Step(`^the triples are equal$`, func() error {
-		if !w.compared {
-			return errors.New("no comparison happened")
-		}
-		if !w.equal {
-			return errors.New("the triples are not equal")
-		}
-		return nil
-	})
-	sc.Step(`^the triples are not equal$`, func() error {
-		if !w.compared {
-			return errors.New("no comparison happened")
-		}
-		if w.equal {
-			return errors.New("the triples are equal")
-		}
-		return nil
-	})
+	registerEqualitySteps(sc, w, "triple", &w.triples)
 
 	// Quads.
 	sc.Step(`^the developer creates a quad with:$`, func(table *godog.Table) error {
@@ -173,31 +149,7 @@ func registerStatementSteps(sc *godog.ScenarioContext, w *world) {
 		}
 		return nil
 	})
-	sc.Step(`^the developer compares the two quads$`, func() error {
-		if len(w.quads) != 2 {
-			return fmt.Errorf("expected two quads, have %d", len(w.quads))
-		}
-		w.equal, w.compared = w.quads[0] == w.quads[1], true
-		return nil
-	})
-	sc.Step(`^the quads are equal$`, func() error {
-		if !w.compared {
-			return errors.New("no comparison happened")
-		}
-		if !w.equal {
-			return errors.New("the quads are not equal")
-		}
-		return nil
-	})
-	sc.Step(`^the quads are not equal$`, func() error {
-		if !w.compared {
-			return errors.New("no comparison happened")
-		}
-		if w.equal {
-			return errors.New("the quads are equal")
-		}
-		return nil
-	})
+	registerEqualitySteps(sc, w, "quad", &w.quads)
 }
 
 // expectNamedNode checks that value is the named node with the given IRI.

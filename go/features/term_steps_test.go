@@ -225,29 +225,5 @@ func registerTermSteps(sc *godog.ScenarioContext, w *world) {
 		w.pushTerm(oxigraph.DefaultGraph())
 		return nil
 	})
-	sc.Step(`^the developer compares the two terms$`, func() error {
-		if len(w.terms) != 2 {
-			return fmt.Errorf("expected two terms on the stack, have %d", len(w.terms))
-		}
-		w.equal, w.compared = w.terms[0] == w.terms[1], true
-		return nil
-	})
-	sc.Step(`^the terms are equal$`, func() error {
-		if !w.compared {
-			return errors.New("no comparison happened")
-		}
-		if !w.equal {
-			return fmt.Errorf("%v and %v are not equal", w.terms[0], w.terms[1])
-		}
-		return nil
-	})
-	sc.Step(`^the terms are not equal$`, func() error {
-		if !w.compared {
-			return errors.New("no comparison happened")
-		}
-		if w.equal {
-			return fmt.Errorf("%v and %v are equal", w.terms[0], w.terms[1])
-		}
-		return nil
-	})
+	registerEqualitySteps(sc, w, "term", &w.terms)
 }
