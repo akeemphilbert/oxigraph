@@ -27,6 +27,11 @@ for (const binding of store.query("SELECT ?name WHERE { ?s ?p ?name }")) {
 }
 ```
 
+(This is the API of the current 0.5 releases, which this snippet was verified
+against. The upcoming 0.6 removes the built-in term constructors like
+`oxigraph.namedNode` in favor of RDF/JS data-model libraries — see the
+migration guide in the package README before upgrading.)
+
 The store lives in memory: the WebAssembly build has no on-disk persistence. If
 you need durable storage, run [the server](../tutorials/getting-started.md) and
 query it [over HTTP](http.md) instead.

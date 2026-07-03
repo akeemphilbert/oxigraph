@@ -20,15 +20,21 @@ cargo install oxigraph-cli
 docker pull ghcr.io/oxigraph/oxigraph
 ```
 
-The rest of this tutorial shows the `oxigraph` binary. If you use Docker, replace
-`oxigraph` with:
+The rest of this tutorial shows the `oxigraph` binary. If you use Docker, skip
+step 3 and start the server directly (the Docker equivalent of step 4):
 
 ```sh
-docker run --rm -v "$PWD"/data:/data -p 7878:7878 ghcr.io/oxigraph/oxigraph
+docker run --rm -v "$PWD"/data:/data -p 7878:7878 ghcr.io/oxigraph/oxigraph serve --location /data --bind 0.0.0.0:7878
 ```
 
-and add `--bind 0.0.0.0:7878` to the `serve` command so the server is reachable
-from outside the container.
+Then, once the server is up, load `example.ttl` from step 2 over HTTP instead of
+with the `load` command — the container cannot see files outside the mounted
+`data` volume:
+
+```sh
+curl -X POST 'http://localhost:7878/store?default' \
+  -H 'Content-Type: text/turtle' --data-binary @example.ttl
+```
 
 Check the install worked:
 
