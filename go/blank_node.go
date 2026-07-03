@@ -28,8 +28,9 @@ func NewBlankNode(id string) (BlankNode, error) {
 
 // NewBlankNodeRandom creates a blank node with a fresh random identifier,
 // mirroring pyoxigraph's BlankNode(): the lowercase hex form of a random
-// 128-bit integer, re-drawn until its first digit is a letter so the
-// identifier stays distinguishable from numbered serialization labels.
+// 128-bit integer, re-drawn until its first digit is a letter — as in
+// oxrdf, which avoids a leading digit so the identifier is also a valid
+// RDF/XML rdf:nodeID (an XML NCName cannot start with a digit).
 func NewBlankNodeRandom() BlankNode {
 	for {
 		id := formatUint128Hex(rand.Uint64(), rand.Uint64())
@@ -108,8 +109,8 @@ func isBlankNodeIDStart(r rune) bool {
 	return false
 }
 
-// isBlankNodeIDPart additionally allows '.', '-' and the PN_CHARS
-// combining ranges in non-leading positions.
+// isBlankNodeIDPart additionally allows the remaining PN_CHARS extras in
+// non-leading positions: '.', '-', U+00B7, U+0300-036F and U+203F-2040.
 func isBlankNodeIDPart(r rune) bool {
 	if isBlankNodeIDStart(r) {
 		return true

@@ -13,19 +13,19 @@ import (
 // world holds one scenario's state. A fresh value is installed before each
 // scenario, so steps never see another scenario's terms or errors.
 type world struct {
-	result     any   // last constructed or parsed value (term, default graph, ...)
-	err        error // error from the last construction or parse
-	terms      []any // comparison stack seeded by the Given steps
-	triples    []oxigraph.Triple
-	quads      []oxigraph.Quad
-	blankNodes []oxigraph.BlankNode
-	quad       oxigraph.Quad // last constructed or parsed quad
-	hasQuad    bool
-	triple     oxigraph.Triple // last constructed triple
-	hasTriple  bool
-	line       string // original N-Quads line, for round-trip checks
-	equal      bool   // outcome of the last comparison
-	compared   bool
+	result       any   // last constructed or parsed value (term, default graph, ...)
+	err          error // error from the last construction or parse
+	terms        []any // comparison stack seeded by the Given steps
+	triples      []oxigraph.Triple
+	quads        []oxigraph.Quad
+	blankNodes   []oxigraph.BlankNode
+	quad         oxigraph.Quad // last constructed or parsed quad
+	hasQuad      bool
+	triple       oxigraph.Triple // last constructed triple
+	hasTriple    bool
+	line         string // original N-Quads line, for round-trip checks
+	equal        bool   // outcome of the last comparison
+	comparedNoun string // which kind of value was compared ("term", ...)
 }
 
 func InitializeScenario(sc *godog.ScenarioContext) {
@@ -112,12 +112,12 @@ func registerEqualitySteps[T comparable](sc *godog.ScenarioContext, w *world, no
 		if len(*items) != 2 {
 			return fmt.Errorf("expected two %ss on the stack, have %d", noun, len(*items))
 		}
-		w.equal, w.compared = (*items)[0] == (*items)[1], true
+		w.equal, w.comparedNoun = (*items)[0] == (*items)[1], noun
 		return nil
 	})
 	sc.Step(`^the `+noun+`s are equal$`, func() error {
-		if !w.compared {
-			return errors.New("no comparison happened")
+		if w.comparedNoun != noun {
+			return fmt.Errorf("no %s comparison happened", noun)
 		}
 		if !w.equal {
 			return fmt.Errorf("the %ss %v and %v are not equal", noun, (*items)[0], (*items)[1])
@@ -125,8 +125,8 @@ func registerEqualitySteps[T comparable](sc *godog.ScenarioContext, w *world, no
 		return nil
 	})
 	sc.Step(`^the `+noun+`s are not equal$`, func() error {
-		if !w.compared {
-			return errors.New("no comparison happened")
+		if w.comparedNoun != noun {
+			return fmt.Errorf("no %s comparison happened", noun)
 		}
 		if w.equal {
 			return fmt.Errorf("the %ss %v and %v are equal", noun, (*items)[0], (*items)[1])

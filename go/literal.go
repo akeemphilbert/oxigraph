@@ -13,11 +13,11 @@ const (
 	rdfLangString = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
 )
 
-// Literal is an RDF literal term, mirroring pyoxigraph's Literal. The
-// datatype field is always populated (xsd:string for plain literals,
-// rdf:langString for language-tagged ones), so == compares literals
+// Literal is an RDF literal term, mirroring pyoxigraph's Literal. An
+// empty datatype field encodes xsd:string, so == compares literals
 // exactly as pyoxigraph does: by lexical form, never by value space, with
-// an xsd:string-typed literal indistinguishable from the plain literal.
+// an xsd:string-typed literal indistinguishable from the plain literal —
+// and the zero value is the empty plain literal.
 type Literal struct {
 	value    string
 	language string
@@ -26,7 +26,7 @@ type Literal struct {
 
 // NewLiteral creates a plain literal; its datatype is xsd:string.
 func NewLiteral(value string) Literal {
-	return Literal{value: value, datatype: xsdString}
+	return Literal{value: value}
 }
 
 // NewLanguageTaggedLiteral creates a language-tagged literal. The tag is
@@ -41,9 +41,14 @@ func NewLanguageTaggedLiteral(value, language string) (Literal, error) {
 }
 
 // NewTypedLiteral creates a literal with an explicit datatype. A datatype
-// of xsd:string yields the exact representation NewLiteral produces, so
-// the two compare equal, as in oxrdf.
+// of xsd:string (or the zero-value NamedNode) yields the exact
+// representation NewLiteral produces, so the two compare equal, as in
+// oxrdf. Passing rdf:langString does not create a language-tagged literal
+// — use NewLanguageTaggedLiteral for that.
 func NewTypedLiteral(value string, datatype NamedNode) Literal {
+	if datatype.iri == xsdString {
+		return Literal{value: value}
+	}
 	return Literal{value: value, datatype: datatype.iri}
 }
 
@@ -58,7 +63,12 @@ func (l Literal) Language() (string, bool) { return l.language, l.language != ""
 // Datatype returns the datatype IRI, mirroring pyoxigraph's
 // Literal.datatype: xsd:string for plain literals, rdf:langString for
 // language-tagged ones.
-func (l Literal) Datatype() NamedNode { return NamedNode{iri: l.datatype} }
+func (l Literal) Datatype() NamedNode {
+	if l.datatype == "" {
+		return NamedNode{iri: xsdString}
+	}
+	return NamedNode{iri: l.datatype}
+}
 
 // String returns the N-Quads form of the literal.
 func (l Literal) String() string {
@@ -67,7 +77,7 @@ func (l Literal) String() string {
 	if l.language != "" {
 		b.WriteByte('@')
 		b.WriteString(l.language)
-	} else if l.datatype != xsdString {
+	} else if l.datatype != "" {
 		b.WriteString("^^<")
 		b.WriteString(l.datatype)
 		b.WriteByte('>')

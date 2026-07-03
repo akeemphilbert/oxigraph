@@ -62,7 +62,8 @@ func TestQuadEquality(t *testing.T) {
 }
 
 func TestDefaultGraph(t *testing.T) {
-	if DefaultGraph() != DefaultGraph() {
+	first, second := GraphName(DefaultGraph()), GraphName(DefaultGraph())
+	if first != second {
 		t.Error("default graph values must be equal")
 	}
 	if got := DefaultGraph().String(); got != "DEFAULT" {

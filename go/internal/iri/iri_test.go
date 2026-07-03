@@ -31,6 +31,30 @@ func TestValidateAccepts(t *testing.T) {
 	}
 }
 
+func TestValidateUcscharBoundaries(t *testing.T) {
+	accept := []rune{0x00A0, 0xD7FF, 0x1F600, 0xE1000}
+	for _, r := range accept {
+		iri := "http://example.com/" + string(r)
+		if err := Validate(iri); err != nil {
+			t.Errorf("Validate with U+%04X in the path = %v, want nil", r, err)
+		}
+	}
+	reject := []rune{0x009F, 0xFFF0, 0xE0001, 0x1FFFE}
+	for _, r := range reject {
+		iri := "http://example.com/" + string(r)
+		if err := Validate(iri); err == nil {
+			t.Errorf("Validate with U+%04X in the path = nil, want error", r)
+		}
+	}
+	// iprivate is legal in the query and only there.
+	if err := Validate("http://example.com/?q=" + string(rune(0xE000))); err != nil {
+		t.Errorf("iprivate in the query = %v, want nil", err)
+	}
+	if err := Validate("http://example.com/#" + string(rune(0xE000))); err == nil {
+		t.Error("iprivate in the fragment = nil, want error")
+	}
+}
+
 func TestValidateRejects(t *testing.T) {
 	invalid := []string{
 		"",                         // empty

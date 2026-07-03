@@ -14,6 +14,15 @@ func mustNamedNode(t *testing.T, iri string) NamedNode {
 	return n
 }
 
+func mustLangLiteral(t *testing.T, value, language string) Literal {
+	t.Helper()
+	l, err := NewLanguageTaggedLiteral(value, language)
+	if err != nil {
+		t.Fatalf("NewLanguageTaggedLiteral(%q, %q): %v", value, language, err)
+	}
+	return l
+}
+
 func TestNewLiteral(t *testing.T) {
 	l := NewLiteral("Oxigraph")
 	if got := l.Value(); got != "Oxigraph" {
@@ -78,12 +87,30 @@ func TestXSDStringCollapse(t *testing.T) {
 
 func TestLiteralEquality(t *testing.T) {
 	integer := mustNamedNode(t, "http://www.w3.org/2001/XMLSchema#integer")
-	fr, _ := NewLanguageTaggedLiteral("chat", "fr")
+	fr := mustLangLiteral(t, "chat", "fr")
 	if NewLiteral("chat") == fr {
 		t.Error("a language-tagged literal must not equal the plain literal")
 	}
 	if NewTypedLiteral("42", integer) == NewTypedLiteral("042", integer) {
 		t.Error("typed literals must compare by lexical form")
+	}
+}
+
+func TestLiteralZeroValue(t *testing.T) {
+	var zero Literal
+	if zero != NewLiteral("") {
+		t.Error("the zero value must be the empty plain literal")
+	}
+	if got := zero.Datatype().Value(); got != xsdString {
+		t.Errorf("zero value Datatype() = %q, want xsd:string", got)
+	}
+	if got := zero.String(); got != `""` {
+		t.Errorf("zero value String() = %s, want \"\"", got)
+	}
+	// A zero-value datatype NamedNode collapses to the plain literal too,
+	// so a forgotten error branch cannot mint an ill-formed "v"^^<> term.
+	if NewTypedLiteral("v", NamedNode{}) != NewLiteral("v") {
+		t.Error("a zero-value datatype must collapse to the plain literal")
 	}
 }
 

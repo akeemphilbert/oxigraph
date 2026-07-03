@@ -220,7 +220,7 @@ func isIUnreservedOrSubDelims(r rune) bool {
 // isUcschar reports whether r is in RFC 3987's ucschar production: the
 // BMP ranges U+00A0-D7FF, U+F900-FDCF and U+FDF0-FFEF, plus every
 // supplementary plane up to U+EFFFD minus the plane-final non-characters
-// and the U+E0000-E0FFF tag block.
+// and the U+E0000-E0FFF range (RFC 3987 resumes plane 14 at U+E1000).
 func isUcschar(r rune) bool {
 	switch {
 	case r >= 0xA0 && r <= 0xD7FF,

@@ -188,6 +188,11 @@ func readLiteralTerm(s string) (Term, string, error) {
 		if err != nil {
 			return nil, "", err
 		}
+		// Mirrors oxttl: a literal without a language tag must not carry
+		// the rdf:langString datatype.
+		if datatype.iri == rdfLangString {
+			return nil, "", &ParseError{Kind: ErrSyntax, Input: s, Detail: "a literal without a language tag cannot have the rdf:langString datatype"}
+		}
 		return NewTypedLiteral(value, datatype), rest, nil
 	}
 	return NewLiteral(value), rest, nil

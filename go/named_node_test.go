@@ -32,9 +32,9 @@ func TestNewNamedNodeInvalid(t *testing.T) {
 }
 
 func TestNamedNodeEquality(t *testing.T) {
-	a, _ := NewNamedNode("http://example.com/a")
-	b, _ := NewNamedNode("http://example.com/a")
-	c, _ := NewNamedNode("http://example.com/c")
+	a := mustNamedNode(t, "http://example.com/a")
+	b := mustNamedNode(t, "http://example.com/a")
+	c := mustNamedNode(t, "http://example.com/c")
 	if a != b {
 		t.Error("identical named nodes must be equal")
 	}

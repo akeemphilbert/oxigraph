@@ -2,8 +2,9 @@ package oxigraph
 
 // Quad is an RDF triple in a graph, mirroring pyoxigraph's Quad. The
 // fields hold already-validated terms, so they are exported; two quads are
-// equal exactly when == reports true. Construct quads with NewQuad: a
-// struct literal that leaves GraphName nil renders like a default-graph
+// equal exactly when == reports true. The zero value is not a valid quad:
+// methods panic on nil Subject or Object, so construct quads with NewQuad.
+// A struct literal that leaves GraphName nil renders like a default-graph
 // quad but does not compare equal to one whose GraphName is
 // DefaultGraph().
 type Quad struct {

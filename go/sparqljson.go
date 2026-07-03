@@ -1,6 +1,7 @@
 package oxigraph
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -26,8 +27,12 @@ func ParseSPARQLJSONTerm(data json.RawMessage) (Term, error) {
 		return &ParseError{Kind: ErrMalformedTerm, Input: string(data), Detail: detail}
 	}
 
+	// Unknown keys are rejected, as Oxigraph's own JSON results parser
+	// rejects them inside term objects.
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
 	var raw sparqlJSONTerm
-	if err := json.Unmarshal(data, &raw); err != nil {
+	if err := decoder.Decode(&raw); err != nil {
 		return nil, malformed(err.Error())
 	}
 	if raw.Type == nil {
@@ -73,6 +78,9 @@ func ParseSPARQLJSONTerm(data json.RawMessage) (Term, error) {
 			return l, nil
 		}
 		if raw.Datatype != nil {
+			if *raw.Datatype == rdfLangString {
+				return nil, malformed("an rdf:langString literal must have an 'xml:lang' key")
+			}
 			datatype, err := NewNamedNode(*raw.Datatype)
 			if err != nil {
 				return nil, err

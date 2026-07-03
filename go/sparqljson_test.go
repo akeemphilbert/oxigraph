@@ -23,6 +23,9 @@ func TestParseSPARQLJSONTerm(t *testing.T) {
 		// The legacy alias and the implicit xsd:string datatype.
 		{`{"type": "typed-literal", "value": "42", "datatype": "http://www.w3.org/2001/XMLSchema#integer"}`, NewTypedLiteral("42", integer)},
 		{`{"type": "literal", "value": "x", "datatype": "http://www.w3.org/2001/XMLSchema#string"}`, NewLiteral("x")},
+		// Some engines emit the redundant rdf:langString datatype next to
+		// xml:lang; that combination is legal.
+		{`{"type": "literal", "value": "chat", "xml:lang": "fr", "datatype": "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"}`, mustLangLiteral(t, "chat", "fr")},
 	}
 	for _, c := range cases {
 		got, err := ParseSPARQLJSONTerm([]byte(c.json))
@@ -49,6 +52,14 @@ func TestParseSPARQLJSONTermErrors(t *testing.T) {
 		{`{"type": "bnode", "value": "invoice 42"}`, ErrInvalidBlankNodeID},
 		{`{"type": "literal", "value": "x", "xml:lang": "en_US"}`, ErrInvalidLanguageTag},
 		{`{"type": "literal", "value": "x", "xml:lang": "en", "datatype": "http://example.com/dt"}`, ErrMalformedTerm},
+		// rdf:langString without a language tag is structurally broken.
+		{`{"type": "literal", "value": "x", "datatype": "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"}`, ErrMalformedTerm},
+		// Unknown keys are rejected, as in Oxigraph's own parser.
+		{`{"type": "literal", "value": "hola", "lang": "es"}`, ErrMalformedTerm},
+		// Wire robustness: non-string and null values, non-object terms.
+		{`{"type": "literal", "value": 42}`, ErrMalformedTerm},
+		{`{"type": "uri", "value": null}`, ErrMalformedTerm},
+		{`[1, 2]`, ErrMalformedTerm},
 	}
 	for _, c := range cases {
 		_, err := ParseSPARQLJSONTerm([]byte(c.json))

@@ -18,6 +18,9 @@ func TestNormalizeAccepts(t *testing.T) {
 		{"az-Arab-x-AZE-derbend", "az-arab-x-aze-derbend"},
 		{"und", "und"},
 		{"qaa-Qaaa-QM-x-southern", "qaa-qaaa-qm-x-southern"},
+		{"zh-aaa-bbb-ccc", "zh-aaa-bbb-ccc"}, // three extlangs allowed
+		{"en-a-bb-c-dd", "en-a-bb-c-dd"},     // two singleton chains
+		{"en-a-bb-a-cc", "en-a-bb-a-cc"},     // duplicate singleton: well-formedness only
 	}
 	for _, c := range cases {
 		got, err := Normalize(c.in)
@@ -33,20 +36,22 @@ func TestNormalizeAccepts(t *testing.T) {
 
 func TestNormalizeRejects(t *testing.T) {
 	invalid := []string{
-		"",             // empty
-		"en_US",        // underscore separator
-		"123",          // digits as primary language
-		"a",            // single-letter primary language (only x/i via grandfathered)
-		"en-",          // empty subtag
-		"-en",          // empty subtag
-		"en--us",       // empty subtag
-		"verylongtag",  // primary language longer than 8
-		"en-a",         // extension singleton with no subtags
-		"en-x",         // private use with no subtags
-		"x",            // private-use-only with no subtags
-		"en-us-us",     // duplicate region position
-		"en-é",         // non-ASCII
-		"en-aaaaaaaaa", // subtag longer than 8
+		"",                   // empty
+		"en_US",              // underscore separator
+		"123",                // digits as primary language
+		"a",                  // single-letter primary language (only x/i via grandfathered)
+		"en-",                // empty subtag
+		"-en",                // empty subtag
+		"en--us",             // empty subtag
+		"verylongtag",        // primary language longer than 8
+		"en-a",               // extension singleton with no subtags
+		"en-x",               // private use with no subtags
+		"x",                  // private-use-only with no subtags
+		"en-us-us",           // duplicate region position
+		"en-é",               // non-ASCII
+		"en-aaaaaaaaa",       // subtag longer than 8
+		"zh-aaa-bbb-ccc-ddd", // fourth extlang
+		"de-419-DE",          // subtag after region that fits nothing
 	}
 	for _, tag := range invalid {
 		if _, err := Normalize(tag); err == nil {

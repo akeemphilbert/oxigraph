@@ -2,7 +2,8 @@ package oxigraph
 
 // Triple is an RDF triple, mirroring pyoxigraph's Triple. The fields hold
 // already-validated terms, so they are exported; two triples are equal
-// exactly when == reports true.
+// exactly when == reports true. The zero value is not a valid triple:
+// methods panic on nil terms, so construct triples with NewTriple.
 type Triple struct {
 	Subject   Subject
 	Predicate NamedNode

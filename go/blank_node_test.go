@@ -31,6 +31,24 @@ func TestNewBlankNodeInvalid(t *testing.T) {
 	}
 }
 
+func TestFormatUint128Hex(t *testing.T) {
+	cases := []struct {
+		hi, lo uint64
+		want   string
+	}{
+		{0, 0xf, "f"},
+		{0, 0, "0"},
+		{1, 0xf, "1000000000000000f"}, // low word zero-padded to 16 digits
+		{0xabc, 0, "abc0000000000000000"},
+		{0, 0xdeadbeef, "deadbeef"},
+	}
+	for _, c := range cases {
+		if got := formatUint128Hex(c.hi, c.lo); got != c.want {
+			t.Errorf("formatUint128Hex(%#x, %#x) = %q, want %q", c.hi, c.lo, got, c.want)
+		}
+	}
+}
+
 func TestNewBlankNodeRandom(t *testing.T) {
 	seen := map[string]bool{}
 	for range 100 {
