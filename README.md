@@ -59,6 +59,13 @@ The library layers in Oxigraph. The elements above depend on the elements below:
 
 A preliminary benchmark [is provided](bench/README.md). There is also [a document describing Oxigraph technical architecture](https://github.com/oxigraph/oxigraph/wiki/Architecture).
 
+## Documentation
+
+In-repo guides live in [`docs/`](docs/README.md):
+
+- [User documentation](docs/users/README.md) — install, run, and query Oxigraph from the command line, the server, or as a library in Rust, Python, or JavaScript.
+- [Contributor documentation](docs/contributors/README.md) — set up a development environment, understand the architecture, and make changes to Oxigraph itself.
+
 ## Help
 
 Feel free to use [GitHub discussions](https://github.com/oxigraph/oxigraph/discussions) or [the Gitter chat](https://gitter.im/oxigraph/community) to ask questions or talk about Oxigraph.
