@@ -12,7 +12,7 @@ Insert a triple and query it back:
 
 ```rust
 use oxigraph::model::*;
-use oxigraph::sparql::QueryResults;
+use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -27,7 +27,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         GraphNameRef::DefaultGraph,
     ))?;
 
-    if let QueryResults::Solutions(solutions) = store.query("SELECT ?name WHERE { ?s ?p ?name }")? {
+    if let QueryResults::Solutions(solutions) = SparqlEvaluator::new()
+        .parse_query("SELECT ?name WHERE { ?s ?p ?name }")?
+        .on_store(&store)
+        .execute()?
+    {
         for solution in solutions {
             println!("{}", solution?.get("name").unwrap());
         }
@@ -36,8 +40,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-`Store::new()` gives you an in-memory store. To persist data on disk, enable the
-`rocksdb` storage backend and open a directory instead:
+`Store::new()` gives you an in-memory store. To persist data on disk, open a
+directory instead (the on-disk RocksDB backend is enabled by default):
 
 ```rust
 let store = Store::open("path/to/data")?;

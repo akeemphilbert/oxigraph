@@ -61,16 +61,16 @@ sequenceDiagram
     participant App as Your code / HTTP server
     participant Store as oxigraph::Store
     participant Gebra as spargebra
-    participant Opt as sparopt
+    participant Optimizer as sparopt
     participant Eval as spareval
     participant Storage as storage backend
     participant Res as sparesults
 
-    App->>Store: store.query("SELECT ...")
+    App->>Store: run a SPARQL query (SparqlEvaluator)
     Store->>Gebra: parse the query string
     Gebra-->>Store: SPARQL algebra tree
-    Store->>Opt: optimize the algebra
-    Opt-->>Store: rewritten algebra
+    Store->>Optimizer: optimize the algebra
+    Optimizer-->>Store: rewritten algebra
     Store->>Eval: evaluate against the store
     loop each triple/quad pattern
         Eval->>Storage: look up matching quads
