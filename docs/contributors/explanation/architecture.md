@@ -118,5 +118,7 @@ see a consistent view of the data while updates run.
   up to; each standalone crate ([oxrdf](https://docs.rs/oxrdf),
   [oxrdfio](https://docs.rs/oxrdfio), [spargebra](https://docs.rs/spargebra),
   [spareval](https://docs.rs/spareval), …) has its own documentation too.
+- [How the language bindings work](language-bindings.md) — how pyoxigraph and
+  the JS package wrap the layers above, and where a new language would attach.
 - The [crate map](../reference/crates.md) — one-line responsibilities and links
   for every workspace member.
