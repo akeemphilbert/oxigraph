@@ -1765,6 +1765,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "oxigraph-ffi"
+version = "0.5.7"
+dependencies = [
+ "oxigraph",
+]
+
+[[package]]
 name = "oxigraph-js"
 version = "0.5.7"
 dependencies = [

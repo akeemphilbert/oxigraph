@@ -14,6 +14,8 @@ var (
 	ErrUnsupportedTermType = errors.New("oxigraph: unsupported term type")
 	ErrMalformedTerm       = errors.New("oxigraph: malformed term")
 	ErrSyntax              = errors.New("oxigraph: syntax error")
+	ErrStorage             = errors.New("oxigraph: storage error")
+	ErrStoreClosed         = errors.New("oxigraph: store already closed")
 )
 
 // ParseError reports why an input was rejected. Kind is one of the Err*

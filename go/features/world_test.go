@@ -26,17 +26,22 @@ type world struct {
 	line         string // original N-Quads line, for round-trip checks
 	equal        bool   // outcome of the last comparison
 	comparedNoun string // which kind of value was compared ("term", ...)
+
+	workspace    string                     // per-scenario temp dir for on-disk stores
+	store        *oxigraph.Store            // most recently referenced store
+	storesByName map[string]*oxigraph.Store // stores opened by name
 }
 
 func InitializeScenario(sc *godog.ScenarioContext) {
 	w := &world{}
 	sc.Before(func(ctx context.Context, _ *godog.Scenario) (context.Context, error) {
-		*w = world{}
+		*w = world{storesByName: map[string]*oxigraph.Store{}}
 		return ctx, nil
 	})
 	registerTermSteps(sc, w)
 	registerStatementSteps(sc, w)
 	registerParsingSteps(sc, w)
+	registerStoreSteps(sc, w)
 }
 
 // stringer returns the last constructed value as a fmt.Stringer, failing

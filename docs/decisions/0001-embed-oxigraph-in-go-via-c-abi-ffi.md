@@ -85,6 +85,13 @@ objects, or transactions cross the boundary; results are fully serialized on
 the Rust side. This sidesteps the classic FFI hazards (lifetimes, per-object
 ownership) at the cost of materializing result sets — see Consequences.
 
+> **Amendment (story #13).** `last_error` is replaced by a
+> `char **error_out` out-parameter on every fallible function, freed with
+> `free_string`. Go goroutines can migrate OS threads between cgo calls,
+> so both thread-local and handle-external last-error state are racy from
+> Go; per-call out-parameters carry no cross-call state and keep the same
+> function budget.
+
 **`go/` (new in-tree Go module, the public binding).** The API a user sees
 mirrors `pyoxigraph`, in Go idiom — Oxigraph nomenclature only:
 
