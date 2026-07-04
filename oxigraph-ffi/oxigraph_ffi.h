@@ -18,6 +18,16 @@ extern "C" {
 
 typedef struct OxigraphStore OxigraphStore;
 
+/* Query result kinds written to kind_out on success. */
+#define OXIGRAPH_RESULT_SOLUTIONS 1
+#define OXIGRAPH_RESULT_BOOLEAN 2
+#define OXIGRAPH_RESULT_TRIPLES 3
+
+/* Failure kinds written to kind_out when a call reports an error. */
+#define OXIGRAPH_ERROR_SYNTAX (-1)
+#define OXIGRAPH_ERROR_EVALUATION (-2)
+#define OXIGRAPH_ERROR_STORAGE (-3)
+
 /* Opens a read-write store backed by RocksDB at path, creating the leaf
  * directory if missing (parent directories are not created). */
 OxigraphStore *oxigraph_open(const char *path, char **error_out);
@@ -29,6 +39,15 @@ OxigraphStore *oxigraph_open_in_memory(char **error_out);
  * RocksDB directory lock). NULL is tolerated; closing the same handle
  * twice is undefined behavior — the host binding must guard against it. */
 void oxigraph_close(OxigraphStore *store);
+
+/* Evaluates a SPARQL query and returns the fully materialized result as
+ * a caller-owned string: SPARQL JSON results for SELECT and ASK,
+ * N-Triples for CONSTRUCT and DESCRIBE. *kind_out receives the
+ * OXIGRAPH_RESULT_* kind. Returns NULL on failure, writing an
+ * OXIGRAPH_ERROR_* kind into *kind_out and a caller-owned message into
+ * *error_out. */
+char *oxigraph_query(const OxigraphStore *store, const char *query,
+                     int *kind_out, char **error_out);
 
 /* Frees a string the library wrote into an out-parameter. NULL is
  * tolerated. */

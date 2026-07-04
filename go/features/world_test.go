@@ -30,6 +30,8 @@ type world struct {
 	workspace    string                     // per-scenario temp dir for on-disk stores
 	store        *oxigraph.Store            // most recently referenced store
 	storesByName map[string]*oxigraph.Store // stores opened by name
+	query        oxigraph.QueryResults      // last query's results
+	hasQuery     bool
 }
 
 func InitializeScenario(sc *godog.ScenarioContext) {
@@ -42,6 +44,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	registerStatementSteps(sc, w)
 	registerParsingSteps(sc, w)
 	registerStoreSteps(sc, w)
+	registerQuerySteps(sc, w)
 }
 
 // stringer returns the last constructed value as a fmt.Stringer, failing

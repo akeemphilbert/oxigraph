@@ -24,7 +24,7 @@ import (
 // release the engine's resources (for an on-disk store, the RocksDB
 // directory lock). A Store is safe for concurrent use.
 type Store struct {
-	mu  sync.Mutex
+	mu  sync.RWMutex
 	ptr *C.OxigraphStore
 }
 

@@ -17,9 +17,22 @@
 //!   pointers the caller passed in.
 #![expect(unsafe_code)]
 
+use oxigraph::sparql::results::{QueryResultsFormat, QueryResultsSerializer};
+use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
-use std::ffi::{CStr, CString, c_char};
+use std::ffi::{CStr, CString, c_char, c_int};
+use std::fmt::Write;
 use std::ptr;
+
+/// Query result kinds written to `kind_out` on success.
+pub const OXIGRAPH_RESULT_SOLUTIONS: c_int = 1;
+pub const OXIGRAPH_RESULT_BOOLEAN: c_int = 2;
+pub const OXIGRAPH_RESULT_TRIPLES: c_int = 3;
+
+/// Failure kinds written to `kind_out` when a call reports an error.
+pub const OXIGRAPH_ERROR_SYNTAX: c_int = -1;
+pub const OXIGRAPH_ERROR_EVALUATION: c_int = -2;
+pub const OXIGRAPH_ERROR_STORAGE: c_int = -3;
 
 /// An opaque handle around an open [`Store`].
 pub struct OxigraphStore {
@@ -126,6 +139,114 @@ pub unsafe extern "C" fn oxigraph_close(store: *mut OxigraphStore) {
     }
 }
 
+/// Writes a result kind or failure kind into `kind_out`.
+///
+/// # Safety
+///
+/// `kind_out` must be null or a valid pointer to writable memory.
+unsafe fn set_kind(kind_out: *mut c_int, kind: c_int) {
+    if !kind_out.is_null() {
+        // SAFETY: kind_out is non-null and writable per the contract above.
+        unsafe {
+            *kind_out = kind;
+        }
+    }
+}
+
+/// Evaluates a SPARQL query against the store and returns the fully
+/// materialized result as a caller-owned string: SPARQL JSON results for
+/// SELECT and ASK, N-Triples for CONSTRUCT and DESCRIBE. `kind_out`
+/// receives the `OXIGRAPH_RESULT_*` kind on success.
+///
+/// Returns null on failure, writing an `OXIGRAPH_ERROR_*` kind into
+/// `kind_out` and a caller-owned message into `error_out`.
+///
+/// # Safety
+///
+/// `store` must be a handle returned by an `oxigraph_open*` function that
+/// has not been closed. `query` must be a valid NUL-terminated C string.
+/// `kind_out` and `error_out` must each be null or a valid pointer to
+/// writable memory.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn oxigraph_query(
+    store: *const OxigraphStore,
+    query: *const c_char,
+    kind_out: *mut c_int,
+    error_out: *mut *mut c_char,
+) -> *mut c_char {
+    // SAFETY: delegated to the caller's contract for every pointer.
+    unsafe {
+        let fail = |kind: c_int, message: &str| {
+            set_kind(kind_out, kind);
+            set_error(error_out, message);
+            ptr::null_mut()
+        };
+        let Some(store) = store.as_ref() else {
+            return fail(OXIGRAPH_ERROR_EVALUATION, "the store handle must not be null");
+        };
+        if query.is_null() {
+            return fail(OXIGRAPH_ERROR_SYNTAX, "the query must not be null");
+        }
+        let Ok(query) = CStr::from_ptr(query).to_str() else {
+            return fail(OXIGRAPH_ERROR_SYNTAX, "the query is not valid UTF-8");
+        };
+        let parsed = match SparqlEvaluator::new().parse_query(query) {
+            Ok(parsed) => parsed,
+            Err(e) => return fail(OXIGRAPH_ERROR_SYNTAX, &e.to_string()),
+        };
+        let results = match parsed.on_store(&store.store).execute() {
+            Ok(results) => results,
+            Err(e) => return fail(OXIGRAPH_ERROR_EVALUATION, &e.to_string()),
+        };
+        match serialize_query_results(results) {
+            Ok((payload, kind)) => {
+                let Ok(payload) = CString::new(payload) else {
+                    // The JSON and N-Triples serializers escape control
+                    // characters, so an interior NUL cannot occur.
+                    return fail(OXIGRAPH_ERROR_EVALUATION, "the result contains a NUL byte");
+                };
+                set_kind(kind_out, kind);
+                payload.into_raw()
+            }
+            Err(message) => fail(OXIGRAPH_ERROR_EVALUATION, &message),
+        }
+    }
+}
+
+/// Serializes query results: SPARQL JSON for solutions and booleans,
+/// N-Triples for graphs.
+fn serialize_query_results(results: QueryResults<'_>) -> Result<(Vec<u8>, c_int), String> {
+    match results {
+        QueryResults::Solutions(solutions) => {
+            let mut buffer = Vec::new();
+            let mut serializer = QueryResultsSerializer::from_format(QueryResultsFormat::Json)
+                .serialize_solutions_to_writer(&mut buffer, solutions.variables().to_vec())
+                .map_err(|e| e.to_string())?;
+            for solution in solutions {
+                let solution = solution.map_err(|e| e.to_string())?;
+                serializer.serialize(&solution).map_err(|e| e.to_string())?;
+            }
+            serializer.finish().map_err(|e| e.to_string())?;
+            Ok((buffer, OXIGRAPH_RESULT_SOLUTIONS))
+        }
+        QueryResults::Boolean(value) => {
+            let mut buffer = Vec::new();
+            QueryResultsSerializer::from_format(QueryResultsFormat::Json)
+                .serialize_boolean_to_writer(&mut buffer, value)
+                .map_err(|e| e.to_string())?;
+            Ok((buffer, OXIGRAPH_RESULT_BOOLEAN))
+        }
+        QueryResults::Graph(triples) => {
+            let mut buffer = String::new();
+            for triple in triples {
+                let triple = triple.map_err(|e| e.to_string())?;
+                writeln!(&mut buffer, "{triple} .").map_err(|e| e.to_string())?;
+            }
+            Ok((buffer.into_bytes(), OXIGRAPH_RESULT_TRIPLES))
+        }
+    }
+}
+
 /// Frees a string the library wrote into an out-parameter. Null is
 /// tolerated.
 ///
@@ -227,5 +348,68 @@ mod tests {
     fn close_and_free_tolerate_null() {
         unsafe { oxigraph_close(ptr::null_mut()) };
         unsafe { oxigraph_free_string(ptr::null_mut()) };
+    }
+
+    fn run_query(store: *const OxigraphStore, query: &str) -> (Option<String>, c_int, Option<String>) {
+        let c_query = CString::new(query).unwrap();
+        let mut kind: c_int = 0;
+        let mut error: *mut c_char = ptr::null_mut();
+        let result =
+            unsafe { oxigraph_query(store, c_query.as_ptr(), &raw mut kind, &raw mut error) };
+        let payload = if result.is_null() {
+            None
+        } else {
+            let text = unsafe { CStr::from_ptr(result) }.to_str().unwrap().to_owned();
+            unsafe { oxigraph_free_string(result) };
+            Some(text)
+        };
+        let message = if error.is_null() { None } else { Some(error_text(error)) };
+        (payload, kind, message)
+    }
+
+    #[test]
+    fn query_returns_solutions_boolean_and_triples() {
+        let mut error: *mut c_char = ptr::null_mut();
+        let store = unsafe { oxigraph_open_in_memory(&raw mut error) };
+        assert!(!store.is_null());
+
+        let (payload, kind, _) = run_query(store, "SELECT (1 AS ?x) WHERE {}");
+        assert_eq!(kind, OXIGRAPH_RESULT_SOLUTIONS);
+        assert!(payload.unwrap().contains("\"x\""));
+
+        let (payload, kind, _) = run_query(store, "ASK { FILTER(true) }");
+        assert_eq!(kind, OXIGRAPH_RESULT_BOOLEAN);
+        assert!(payload.unwrap().contains("true"));
+
+        let (payload, kind, _) = run_query(
+            store,
+            "CONSTRUCT { <http://example.com/s> <http://example.com/p> \"o\" } WHERE {}",
+        );
+        assert_eq!(kind, OXIGRAPH_RESULT_TRIPLES);
+        assert!(payload.unwrap().contains("<http://example.com/s>"));
+
+        unsafe { oxigraph_close(store) };
+    }
+
+    #[test]
+    fn query_reports_syntax_and_evaluation_errors() {
+        let mut error: *mut c_char = ptr::null_mut();
+        let store = unsafe { oxigraph_open_in_memory(&raw mut error) };
+        assert!(!store.is_null());
+
+        let (payload, kind, message) = run_query(store, "SELCT ?x WHERE {}");
+        assert!(payload.is_none());
+        assert_eq!(kind, OXIGRAPH_ERROR_SYNTAX);
+        assert!(!message.unwrap().is_empty());
+
+        let (payload, kind, message) = run_query(
+            store,
+            "SELECT ?x WHERE { VALUES ?x { 1 } FILTER(<http://example.com/nofn>(?x)) }",
+        );
+        assert!(payload.is_none());
+        assert_eq!(kind, OXIGRAPH_ERROR_EVALUATION);
+        assert!(message.unwrap().contains("http://example.com/nofn"));
+
+        unsafe { oxigraph_close(store) };
     }
 }
