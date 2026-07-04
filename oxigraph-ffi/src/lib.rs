@@ -20,7 +20,9 @@
 use oxigraph::io::{RdfFormat, RdfParser, RdfSerializer};
 use oxigraph::model::Quad;
 use oxigraph::sparql::results::{QueryResultsFormat, QueryResultsSerializer};
-use oxigraph::sparql::{QueryResults, SparqlEvaluator, UpdateEvaluationError};
+use oxigraph::sparql::{
+    QueryEvaluationError, QueryResults, SparqlEvaluator, UpdateEvaluationError,
+};
 use oxigraph::store::{LoaderError, SerializerError, Store};
 use std::ffi::{CStr, CString, c_char, c_int};
 use std::fmt::Write;
@@ -205,7 +207,7 @@ pub unsafe extern "C" fn oxigraph_query(
         };
         let results = match parsed.on_store(&store.store).execute() {
             Ok(results) => results,
-            Err(e) => return fail(OXIGRAPH_ERROR_EVALUATION, &e.to_string()),
+            Err(e) => return fail(query_error_kind(&e), &e.to_string()),
         };
         match serialize_query_results(results) {
             Ok((payload, kind)) => {
@@ -217,39 +219,52 @@ pub unsafe extern "C" fn oxigraph_query(
                 set_kind(kind_out, kind);
                 payload.into_raw()
             }
-            Err(message) => fail(OXIGRAPH_ERROR_EVALUATION, &message),
+            Err((kind, message)) => fail(kind, &message),
         }
+    }
+}
+
+/// Classifies a query evaluation failure: dataset errors come from the
+/// storage layer, everything else is an evaluation failure.
+fn query_error_kind(error: &QueryEvaluationError) -> c_int {
+    match error {
+        QueryEvaluationError::Dataset(_) => OXIGRAPH_ERROR_STORAGE,
+        _ => OXIGRAPH_ERROR_EVALUATION,
     }
 }
 
 /// Serializes query results: SPARQL JSON for solutions and booleans,
 /// N-Triples for graphs.
-fn serialize_query_results(results: QueryResults<'_>) -> Result<(Vec<u8>, c_int), String> {
+#[expect(clippy::type_complexity)]
+fn serialize_query_results(results: QueryResults<'_>) -> Result<(Vec<u8>, c_int), (c_int, String)> {
+    let evaluation = |e: &dyn std::fmt::Display| (OXIGRAPH_ERROR_EVALUATION, e.to_string());
     match results {
         QueryResults::Solutions(solutions) => {
             let mut buffer = Vec::new();
             let mut serializer = QueryResultsSerializer::from_format(QueryResultsFormat::Json)
                 .serialize_solutions_to_writer(&mut buffer, solutions.variables().to_vec())
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| evaluation(&e))?;
             for solution in solutions {
-                let solution = solution.map_err(|e| e.to_string())?;
-                serializer.serialize(&solution).map_err(|e| e.to_string())?;
+                let solution = solution.map_err(|e| (query_error_kind(&e), e.to_string()))?;
+                serializer
+                    .serialize(&solution)
+                    .map_err(|e| evaluation(&e))?;
             }
-            serializer.finish().map_err(|e| e.to_string())?;
+            serializer.finish().map_err(|e| evaluation(&e))?;
             Ok((buffer, OXIGRAPH_RESULT_SOLUTIONS))
         }
         QueryResults::Boolean(value) => {
             let mut buffer = Vec::new();
             QueryResultsSerializer::from_format(QueryResultsFormat::Json)
                 .serialize_boolean_to_writer(&mut buffer, value)
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| evaluation(&e))?;
             Ok((buffer, OXIGRAPH_RESULT_BOOLEAN))
         }
         QueryResults::Graph(triples) => {
             let mut buffer = String::new();
             for triple in triples {
-                let triple = triple.map_err(|e| e.to_string())?;
-                writeln!(&mut buffer, "{triple} .").map_err(|e| e.to_string())?;
+                let triple = triple.map_err(|e| (query_error_kind(&e), e.to_string()))?;
+                writeln!(&mut buffer, "{triple} .").map_err(|e| evaluation(&e))?;
             }
             Ok((buffer.into_bytes(), OXIGRAPH_RESULT_TRIPLES))
         }
