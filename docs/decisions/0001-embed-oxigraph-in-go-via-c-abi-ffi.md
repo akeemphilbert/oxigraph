@@ -1,6 +1,6 @@
 # Embed Oxigraph in Go via an in-tree binding over a minimal C ABI
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-07-03
 - Deciders: Akeem Philbert
 

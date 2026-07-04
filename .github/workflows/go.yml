@@ -25,12 +25,12 @@ jobs:
           - runner: macos-latest
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-rust
       - run: cargo build -p oxigraph-ffi --release
-      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: go/go.mod
           cache-dependency-path: go/go.sum
@@ -60,7 +60,7 @@ jobs:
     env:
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-rust
@@ -68,7 +68,7 @@ jobs:
           target: ${{ matrix.target }}
       - run: cargo build -p oxigraph-ffi --release ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
       - run: mkdir -p artifact && cp target/${{ matrix.target && format('{0}/', matrix.target) || '' }}release/liboxigraph_ffi.a artifact/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: liboxigraph-ffi-${{ matrix.platform }}
           path: artifact/liboxigraph_ffi.a
@@ -80,16 +80,16 @@ jobs:
     needs: ffi_artifact
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: liboxigraph-ffi-linux_amd64
           path: go/lib/linux_amd64
       - run: rustup self uninstall -y || sudo rm -rf "$HOME/.cargo" "$HOME/.rustup"
       - run: if command -v cargo || command -v rustc; then echo "Rust is still installed" && exit 1; fi
-      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: go/go.mod
           cache-dependency-path: go/go.sum
