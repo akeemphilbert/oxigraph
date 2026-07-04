@@ -42,7 +42,7 @@ never MSVC (`rustup target add x86_64-pc-windows-gnu`, a `mingw-w64`
 gcc on PATH, then add `--target x86_64-pc-windows-gnu`).
 
 Then everything in this module builds and tests with a stock cgo
-toolchain (the platform C++ runtime is linked automatically: libc++ on
+toolchain (the cgo directives link the platform C++ runtime: libc++ on
 macOS, libstdc++ on Linux and Windows/MinGW):
 
 ```sh

@@ -1,4 +1,4 @@
-//go:build ((darwin || linux) && (amd64 || arm64)) || (windows && amd64)
+//go:build (((darwin || linux) && (amd64 || arm64)) || (windows && amd64)) && cgo
 
 // Package features_test runs the Gherkin acceptance contract in this
 // directory against the public oxigraph API with godog. It is an external
