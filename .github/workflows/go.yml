@@ -19,6 +19,7 @@ permissions: {}
 jobs:
   test:
     strategy:
+      fail-fast: false # one OS's registry flake must not cancel the others
       matrix:
         include:
           - runner: ubuntu-latest
