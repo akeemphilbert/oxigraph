@@ -11,13 +11,23 @@ on Windows that means MinGW-w64, the toolchain cgo links with):
 go get github.com/akeemphilbert/oxigraph/go
 ```
 
-The Rust engine links as a static library. Releases vendor prebuilt
-libraries for the common platforms into the module, so you do **not**
-need Rust; if your platform's library is not vendored in the version you
-use, either build it once from a repository checkout
-(`cargo build -p oxigraph-ffi --release`) or download a `liboxigraph-ffi`
-CI artifact and point `CGO_LDFLAGS` at its directory. See
-[the module README](../../../go/README.md) for how the library is found.
+The Rust engine links as a static library. Each tagged release
+(`go/vX.Y.Z`) attaches a prebuilt library per platform to the GitHub
+release, so you do **not** need Rust — download the one matching your
+platform, unpack it, and point `CGO_LDFLAGS` at its directory:
+
+```sh
+gh release download go/v0.1.0-alpha.1 --repo akeemphilbert/oxigraph \
+  --pattern "liboxigraph_ffi_$(go env GOOS)_$(go env GOARCH).a.gz"
+mkdir -p oxigraph-lib
+gunzip -c liboxigraph_ffi_*.a.gz > oxigraph-lib/liboxigraph_ffi.a
+export CGO_LDFLAGS=-L$PWD/oxigraph-lib
+```
+
+If your platform has no prebuilt library, build it once from a
+repository checkout (`cargo build -p oxigraph-ffi --release`) instead.
+See [the module README](../../../go/README.md) for how the library is
+found.
 
 Insert a quad and query it back:
 

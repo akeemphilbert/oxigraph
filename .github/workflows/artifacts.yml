@@ -16,7 +16,10 @@ concurrency:
 permissions: {}
 
 jobs:
+  # go/vX.Y.Z releases are Go binding releases (go.yml); they must not
+  # trigger this publish pipeline, so every root job skips them.
   python_sdist:
+    if: github.event_name != 'release' || !startsWith(github.event.release.tag_name, 'go/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
@@ -48,6 +51,7 @@ jobs:
       - run: uvx twine check target/wheels/*
 
   wheel_linux:
+    if: github.event_name != 'release' || !startsWith(github.event.release.tag_name, 'go/')
     strategy:
       matrix:
         include:
@@ -93,6 +97,7 @@ jobs:
       - run: uvx twine check target/wheels/*
 
   wheel_linux_musl:
+    if: github.event_name != 'release' || !startsWith(github.event.release.tag_name, 'go/')
     strategy:
       matrix:
         include:
@@ -121,6 +126,7 @@ jobs:
       - run: uvx twine check target/wheels/*
 
   wheel_mac:
+    if: github.event_name != 'release' || !startsWith(github.event.release.tag_name, 'go/')
     strategy:
       matrix:
         include:
@@ -179,6 +185,7 @@ jobs:
       - run: uvx twine check target/wheels/*
 
   wheel_windows:
+    if: github.event_name != 'release' || !startsWith(github.event.release.tag_name, 'go/')
     strategy:
       matrix:
         include:
@@ -296,7 +303,7 @@ jobs:
 
   npm_tarball:
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' || github.ref == 'refs/heads/main'
+    if: (github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'go/')) || github.ref == 'refs/heads/main'
     permissions:
       id-token: write
     steps:
@@ -326,7 +333,7 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' || github.ref == 'refs/heads/main'
+    if: (github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'go/')) || github.ref == 'refs/heads/main'
     permissions:
       id-token: write
       packages: write
@@ -384,7 +391,7 @@ jobs:
         if: github.event_name == 'release'
 
   publish_crates:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'go/')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -473,7 +480,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   full_archive:
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' && !startsWith(github.event.release.tag_name, 'go/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
