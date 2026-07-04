@@ -128,7 +128,11 @@ func parseJSONQueryResults(payload string) (QueryResults, error) {
 		for variable, raw := range binding {
 			term, err := ParseSPARQLJSONTerm(raw)
 			if err != nil {
-				return QueryResults{}, err
+				// The payload comes from the engine, so a term that does
+				// not parse is an engine/binding mismatch, not user input.
+				return QueryResults{}, fmt.Errorf(
+					"%w: invalid term for variable %q in the engine's results: %v",
+					ErrEvaluation, variable, err)
 			}
 			bindings[variable] = term
 		}
@@ -146,7 +150,10 @@ func parseNTriplesQueryResults(payload string) (QueryResults, error) {
 		}
 		quad, err := ParseNQuadsLine(line)
 		if err != nil {
-			return QueryResults{}, err
+			// The payload comes from the engine, so a line that does not
+			// parse is an engine/binding mismatch, not user input.
+			return QueryResults{}, fmt.Errorf(
+				"%w: invalid triple in the engine's results: %v", ErrEvaluation, err)
 		}
 		triples = append(triples, quad.Triple())
 	}
