@@ -161,6 +161,10 @@ fn build_rocksdb() {
             // Tell MinGW to use at least Windows Vista headers instead of the ones of Windows XP.
             // (This is minimum supported version of rocksdb)
             config.define("_WIN32_WINNT", Some("_WIN32_WINNT_VISTA"));
+            // GCC 15+ no longer includes <cstdint> transitively, and some
+            // RocksDB Windows headers use int64_t without including it.
+            config.flag("-include");
+            config.flag("cstdint");
         }
 
         // Remove POSIX-specific sources

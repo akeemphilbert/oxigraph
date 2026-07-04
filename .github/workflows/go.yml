@@ -23,14 +23,23 @@ jobs:
         include:
           - runner: ubuntu-latest
           - runner: macos-latest
+          # Go's cgo links with MinGW, so Windows builds the GNU target,
+          # never MSVC.
+          - runner: windows-latest
+            target: x86_64-pc-windows-gnu
     runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           submodules: true
           persist-credentials: false
       - uses: ./.github/actions/setup-rust
-      - run: cargo build -p oxigraph-ffi --release
+        with:
+          target: ${{ matrix.target }}
+      - run: cargo build -p oxigraph-ffi --release ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: go/go.mod
@@ -57,7 +66,13 @@ jobs:
             runner: macos-latest
             target: x86_64-apple-darwin
             deployment_target: '10.14'
+          - platform: windows_amd64
+            runner: windows-latest
+            target: x86_64-pc-windows-gnu
     runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
     env:
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
     steps:

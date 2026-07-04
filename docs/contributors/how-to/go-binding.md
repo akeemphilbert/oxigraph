@@ -43,10 +43,16 @@ The Rust code is linted like the rest of the workspace (`cargo clippy -p
 oxigraph-ffi --release --all-targets` and `cargo fmt`); the Go code with
 `gofmt` and `go vet ./...`.
 
+On Windows, build the GNU target — Go's cgo links with MinGW, never
+MSVC: `rustup target add x86_64-pc-windows-gnu`, put a `mingw-w64` gcc
+on PATH, and pass `--target x86_64-pc-windows-gnu` to the cargo
+commands above.
+
 ## Refresh the prebuilt libraries
 
-CI's `go.yml` workflow rebuilds the four platform libraries (macOS
-arm64/x86_64, Linux x86_64/arm64) on every change — the `ffi_artifact` job —
+CI's `go.yml` workflow rebuilds the five platform libraries (macOS
+arm64/x86_64, Linux x86_64/arm64, Windows x86_64) on every change — the
+`ffi_artifact` job —
 and proves a consumer builds without Rust (`consumer_no_rust`). To vendor
 fresh libraries, download the `liboxigraph-ffi-*` artifacts from a workflow
 run and place each `liboxigraph_ffi.a` in its `go/lib/<goos>_<goarch>/`
