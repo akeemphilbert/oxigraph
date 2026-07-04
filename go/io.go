@@ -64,6 +64,14 @@ func (s *Store) Load(r io.Reader, format RdfFormat) error {
 	if !format.valid() {
 		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, format)
 	}
+	// Fail fast on a closed store before draining the reader; the check
+	// repeats under the lock below in case of a concurrent Close.
+	s.mu.RLock()
+	closed := s.ptr == nil
+	s.mu.RUnlock()
+	if closed {
+		return ErrStoreClosed
+	}
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return err
@@ -93,7 +101,10 @@ func (s *Store) Load(r io.Reader, format RdfFormat) error {
 // graph scope. The returned error also matches ErrStoreClosed and
 // ErrStorage.
 func (s *Store) Dump(w io.Writer, format RdfFormat) error {
-	if !format.valid() || !format.supportsDatasets() {
+	if !format.valid() {
+		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, format)
+	}
+	if !format.supportsDatasets() {
 		return fmt.Errorf("%w: %s stores triples only; dump with a dataset format such as N-Quads or TriG",
 			ErrUnsupportedFormat, format)
 	}

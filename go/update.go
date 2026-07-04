@@ -72,6 +72,8 @@ func statementError(kind C.int, cError *C.char) error {
 		sentinel = ErrSyntax
 	case C.OXIGRAPH_ERROR_STORAGE:
 		sentinel = ErrStorage
+	case C.OXIGRAPH_ERROR_UNSUPPORTED_FORMAT:
+		sentinel = ErrUnsupportedFormat
 	}
 	return fmt.Errorf("%w: %s", sentinel, message)
 }
