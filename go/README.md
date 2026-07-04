@@ -20,15 +20,14 @@ defer store.Close()
 
 The store links the `oxigraph-ffi` static library. The cgo directives
 look for it first in `lib/<goos>_<goarch>/` (prebuilt, produced by the
-`go.yml` CI workflow and vendored at release time — see
-[lib/README.md](./lib/README.md), including how library updates flow),
-then in the repository's `target/release` as the development fallback.
-Consumers with a vendored prebuilt library need nothing but Go and a C
-toolchain — CI proves this by building
+`go.yml` CI workflow — see [lib/README.md](./lib/README.md), including
+how library updates flow), then in the repository's `target/release`
+as the development fallback. Consumers with a prebuilt library need
+nothing but Go and a C toolchain — CI proves this by building
 [`examples/quickstart`](./examples/quickstart) on a runner with the
-Rust toolchain removed. A module consumer whose platform library is not
-vendored can point the linker at a downloaded CI artifact instead:
-`CGO_LDFLAGS=-L/path/to/dir go build ./...`.
+Rust toolchain removed. Tagged releases attach a prebuilt library per
+platform (see [Releases](#releases)); point the linker at its
+directory: `CGO_LDFLAGS=-L/path/to/dir go build ./...`.
 
 Binding developers build the library once from the repository root (the
 first build compiles RocksDB and takes a while):
@@ -48,6 +47,36 @@ macOS, libstdc++ on Linux and Windows/MinGW):
 ```sh
 cd go
 go test ./...
+```
+
+## Releases
+
+A release is cut by pushing a `go/vX.Y.Z` tag — the `go/` prefix is
+how Go's module proxy resolves versions of a module living in the
+`go/` subdirectory. A semver prerelease version is marked as a
+prerelease on GitHub:
+
+```sh
+git tag go/v0.1.0-alpha.1
+git push origin go/v0.1.0-alpha.1
+```
+
+The `go.yml` workflow runs its full gate (tests on Linux, macOS, and
+Windows; the five static library builds; the no-Rust consumer proof)
+and then publishes a GitHub release with each
+`liboxigraph_ffi_<platform>.a.gz` and a `SHA256SUMS` file attached.
+
+Consumers pin the module version and fetch the matching library:
+
+```sh
+go get github.com/akeemphilbert/oxigraph/go@v0.1.0-alpha.1
+gh release download go/v0.1.0-alpha.1 --repo akeemphilbert/oxigraph \
+  --pattern "liboxigraph_ffi_$(go env GOOS)_$(go env GOARCH).a.gz" \
+  --pattern SHA256SUMS
+shasum -a 256 --check --ignore-missing SHA256SUMS
+mkdir -p oxigraph-lib
+gunzip -c liboxigraph_ffi_*.a.gz > oxigraph-lib/liboxigraph_ffi.a
+CGO_LDFLAGS="-L$PWD/oxigraph-lib" go build ./...
 ```
 
 ## Tests
