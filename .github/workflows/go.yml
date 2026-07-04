@@ -27,6 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
+          submodules: true
           persist-credentials: false
       - uses: ./.github/actions/setup-rust
       - run: cargo build -p oxigraph-ffi --release
@@ -62,6 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
+          submodules: true
           persist-credentials: false
       - uses: ./.github/actions/setup-rust
         with:

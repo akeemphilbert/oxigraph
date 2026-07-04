@@ -307,7 +307,7 @@ jobs:
           target: wasm32-wasip1
       - uses: taiki-e/install-action@8b3c737da4b541bf0fb5a3e0488ff20535badac9 # v2.82.1
         with: { tool: "wasmtime" }
-      - run: cargo test --target wasm32-wasip1 --workspace --exclude oxigraph-js --exclude oxigraph-cli --exclude oxigraph-testsuite --exclude oxrocksdb-sys --exclude pyoxigraph
+      - run: cargo test --target wasm32-wasip1 --workspace --exclude oxigraph-js --exclude oxigraph-cli --exclude oxigraph-testsuite --exclude oxrocksdb-sys --exclude pyoxigraph --exclude oxigraph-ffi
         env:
           CARGO_TARGET_WASM32_WASIP1_RUNNER: wasmtime --dir /tmp/
           WASMTIME_BACKTRACE_DETAILS: 1
