@@ -1,0 +1,7 @@
+# gofmt requires LF, and the godog acceptance suite asserts exact string
+# content from .feature docstrings — keep both immune to core.autocrlf
+# on Windows checkouts.
+*.go text eol=lf
+*.feature text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
