@@ -6,8 +6,10 @@
  * - Every char* the library writes into an out-parameter is owned by the
  *   caller and must be released with oxigraph_free_string.
  *
- * Fallible functions return NULL on failure and, when error_out is not
- * NULL, write a caller-owned message into *error_out.
+ * Fallible functions report failure by returning NULL (pointer-returning
+ * functions) or a non-zero OXIGRAPH_ERROR_* code (int-returning
+ * functions); in both cases, when error_out is not NULL, a caller-owned
+ * message is written into *error_out.
  */
 #ifndef OXIGRAPH_FFI_H
 #define OXIGRAPH_FFI_H
