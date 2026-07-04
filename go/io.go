@@ -9,6 +9,7 @@ import "C"
 import (
 	"fmt"
 	"io"
+	"runtime"
 	"unsafe"
 )
 
@@ -88,7 +89,11 @@ func (s *Store) Load(r io.Reader, format RdfFormat) error {
 		cData = (*C.char)(unsafe.Pointer(&data[0]))
 	}
 	var cError *C.char
-	if status := C.oxigraph_load(s.ptr, cFormat, cData, C.size_t(len(data)), &cError); status != 0 {
+	status := C.oxigraph_load(s.ptr, cFormat, cData, C.size_t(len(data)), &cError)
+	// cgo already pins pointer arguments for the call's duration; the
+	// KeepAlive makes the slice's liveness explicit regardless.
+	runtime.KeepAlive(data)
+	if status != 0 {
 		return statementError(status, cError)
 	}
 	return nil
