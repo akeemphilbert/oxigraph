@@ -114,7 +114,9 @@ pub unsafe extern "C" fn oxigraph_open(
 ///
 /// `error_out` must be null or a valid pointer to writable memory.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn oxigraph_open_in_memory(error_out: *mut *mut c_char) -> *mut OxigraphStore {
+pub unsafe extern "C" fn oxigraph_open_in_memory(
+    error_out: *mut *mut c_char,
+) -> *mut OxigraphStore {
     match Store::new() {
         Ok(store) => Box::into_raw(Box::new(OxigraphStore { store })),
         Err(e) => {
@@ -186,7 +188,10 @@ pub unsafe extern "C" fn oxigraph_query(
             ptr::null_mut()
         };
         let Some(store) = store.as_ref() else {
-            return fail(OXIGRAPH_ERROR_EVALUATION, "the store handle must not be null");
+            return fail(
+                OXIGRAPH_ERROR_EVALUATION,
+                "the store handle must not be null",
+            );
         };
         if query.is_null() {
             return fail(OXIGRAPH_ERROR_SYNTAX, "the query must not be null");
@@ -274,7 +279,10 @@ pub unsafe extern "C" fn oxigraph_update(
             kind
         };
         let Some(store) = store.as_ref() else {
-            return fail(OXIGRAPH_ERROR_EVALUATION, "the store handle must not be null");
+            return fail(
+                OXIGRAPH_ERROR_EVALUATION,
+                "the store handle must not be null",
+            );
         };
         if update.is_null() {
             return fail(OXIGRAPH_ERROR_SYNTAX, "the update must not be null");
@@ -362,7 +370,10 @@ unsafe fn with_store_and_quad(
             kind
         };
         let Some(store) = store.as_ref() else {
-            return fail(OXIGRAPH_ERROR_EVALUATION, "the store handle must not be null");
+            return fail(
+                OXIGRAPH_ERROR_EVALUATION,
+                "the store handle must not be null",
+            );
         };
         if quad.is_null() {
             return fail(OXIGRAPH_ERROR_SYNTAX, "the quad must not be null");
@@ -422,17 +433,26 @@ pub unsafe extern "C" fn oxigraph_load(
             kind
         };
         let Some(store) = store.as_ref() else {
-            return fail(OXIGRAPH_ERROR_EVALUATION, "the store handle must not be null");
+            return fail(
+                OXIGRAPH_ERROR_EVALUATION,
+                "the store handle must not be null",
+            );
         };
         let Some(format) = parse_format(format) else {
-            return fail(OXIGRAPH_ERROR_UNSUPPORTED_FORMAT, "unknown RDF format identifier");
+            return fail(
+                OXIGRAPH_ERROR_UNSUPPORTED_FORMAT,
+                "unknown RDF format identifier",
+            );
         };
         let data: &[u8] = if data.is_null() || len == 0 {
             &[]
         } else {
             std::slice::from_raw_parts(data.cast(), len)
         };
-        match store.store.load_from_slice(RdfParser::from_format(format), data) {
+        match store
+            .store
+            .load_from_slice(RdfParser::from_format(format), data)
+        {
             Ok(()) => 0,
             Err(LoaderError::Parsing(e)) => fail(OXIGRAPH_ERROR_SYNTAX, &e.to_string()),
             Err(LoaderError::Storage(e)) => fail(OXIGRAPH_ERROR_STORAGE, &e.to_string()),
@@ -471,7 +491,10 @@ pub unsafe extern "C" fn oxigraph_dump(
         let Some(format) = parse_format(format) else {
             return fail("unknown RDF format identifier");
         };
-        match store.store.dump_to_writer(RdfSerializer::from_format(format), Vec::new()) {
+        match store
+            .store
+            .dump_to_writer(RdfSerializer::from_format(format), Vec::new())
+        {
             Ok(buffer) => match CString::new(buffer) {
                 Ok(payload) => payload.into_raw(),
                 Err(_) => fail("the dump contains a NUL byte"),
@@ -537,7 +560,10 @@ mod tests {
 
     fn error_text(error: *mut c_char) -> String {
         assert!(!error.is_null());
-        let text = unsafe { CStr::from_ptr(error) }.to_str().unwrap().to_owned();
+        let text = unsafe { CStr::from_ptr(error) }
+            .to_str()
+            .unwrap()
+            .to_owned();
         unsafe { oxigraph_free_string(error) };
         text
     }
@@ -601,7 +627,10 @@ mod tests {
         unsafe { oxigraph_free_string(ptr::null_mut()) };
     }
 
-    fn run_query(store: *const OxigraphStore, query: &str) -> (Option<String>, c_int, Option<String>) {
+    fn run_query(
+        store: *const OxigraphStore,
+        query: &str,
+    ) -> (Option<String>, c_int, Option<String>) {
         let c_query = CString::new(query).unwrap();
         let mut kind: c_int = 0;
         let mut error: *mut c_char = ptr::null_mut();
@@ -610,11 +639,18 @@ mod tests {
         let payload = if result.is_null() {
             None
         } else {
-            let text = unsafe { CStr::from_ptr(result) }.to_str().unwrap().to_owned();
+            let text = unsafe { CStr::from_ptr(result) }
+                .to_str()
+                .unwrap()
+                .to_owned();
             unsafe { oxigraph_free_string(result) };
             Some(text)
         };
-        let message = if error.is_null() { None } else { Some(error_text(error)) };
+        let message = if error.is_null() {
+            None
+        } else {
+            Some(error_text(error))
+        };
         (payload, kind, message)
     }
 
@@ -650,7 +686,11 @@ mod tests {
         let c_input = CString::new(input).unwrap();
         let mut error: *mut c_char = ptr::null_mut();
         let status = unsafe { f(store, c_input.as_ptr(), &raw mut error) };
-        let message = if error.is_null() { None } else { Some(error_text(error)) };
+        let message = if error.is_null() {
+            None
+        } else {
+            Some(error_text(error))
+        };
         (status, message)
     }
 
