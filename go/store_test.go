@@ -58,6 +58,19 @@ func TestOpenLockedDirectoryFails(t *testing.T) {
 	}
 }
 
+func TestNULBytesRejected(t *testing.T) {
+	if _, err := Open("book\x00catalog"); !errors.Is(err, ErrStorage) {
+		t.Errorf("Open with a NUL byte = %v, want ErrStorage", err)
+	}
+	store := mustInMemoryStore(t)
+	if _, err := store.Query("ASK { }\x00"); !errors.Is(err, ErrSyntax) {
+		t.Errorf("Query with a NUL byte = %v, want ErrSyntax", err)
+	}
+	if err := store.Update("INSERT DATA { }\x00"); !errors.Is(err, ErrSyntax) {
+		t.Errorf("Update with a NUL byte = %v, want ErrSyntax", err)
+	}
+}
+
 func TestOpenMissingParentFails(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "archive", "book-catalog")
 	if _, err := Open(path); !errors.Is(err, ErrStorage) {

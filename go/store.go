@@ -8,9 +8,14 @@ import "C"
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"unsafe"
 )
+
+// hasNUL reports whether s contains a NUL byte, which a C string cannot
+// carry — C.CString would silently truncate at it.
+func hasNUL(s string) bool { return strings.IndexByte(s, 0) >= 0 }
 
 // Store is an embedded Oxigraph store, mirroring pyoxigraph's Store. It
 // is backed by the Rust engine through the oxigraph-ffi C ABI; see the
@@ -29,6 +34,9 @@ type Store struct {
 // matching the engine. The returned error matches ErrStorage, including
 // when the directory is locked by another open store.
 func Open(path string) (*Store, error) {
+	if hasNUL(path) {
+		return nil, fmt.Errorf("%w: the store path contains a NUL byte", ErrStorage)
+	}
 	cPath := C.CString(path)
 	defer C.free(unsafe.Pointer(cPath))
 	var cError *C.char

@@ -55,6 +55,9 @@ func (s Solution) Get(name string) (Term, bool) {
 // engine's message), ErrStorage for engine storage failures, and
 // ErrStoreClosed after Close.
 func (s *Store) Query(query string) (QueryResults, error) {
+	if hasNUL(query) {
+		return QueryResults{}, fmt.Errorf("%w: the query contains a NUL byte", ErrSyntax)
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.ptr == nil {
@@ -111,7 +114,7 @@ type sparqlJSONResults struct {
 func parseJSONQueryResults(payload string) (QueryResults, error) {
 	var envelope sparqlJSONResults
 	if err := json.Unmarshal([]byte(payload), &envelope); err != nil {
-		return QueryResults{}, fmt.Errorf("%w: invalid SPARQL JSON results: %s", ErrEvaluation, err)
+		return QueryResults{}, fmt.Errorf("%w: invalid SPARQL JSON results: %v", ErrEvaluation, err)
 	}
 	if envelope.Boolean != nil {
 		return QueryResults{Kind: QueryBoolean, Bool: *envelope.Boolean}, nil

@@ -44,6 +44,9 @@ func (s *Store) Update(update string) error {
 // read lock (the engine handles its own write synchronization) and maps
 // the status/kind convention to Go errors.
 func (s *Store) statement(call func(*C.OxigraphStore, *C.char, **C.char) C.int, text string) error {
+	if hasNUL(text) {
+		return fmt.Errorf("%w: the statement contains a NUL byte", ErrSyntax)
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.ptr == nil {
