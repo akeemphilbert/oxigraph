@@ -49,6 +49,24 @@ void oxigraph_close(OxigraphStore *store);
 char *oxigraph_query(const OxigraphStore *store, const char *query,
                      int *kind_out, char **error_out);
 
+/* Executes a SPARQL update, applied atomically. Returns 0 on success or
+ * an OXIGRAPH_ERROR_* kind on failure, writing a caller-owned message
+ * into *error_out. */
+int oxigraph_update(const OxigraphStore *store, const char *update,
+                    char **error_out);
+
+/* Inserts the quad written as a single N-Quads statement line (trailing
+ * dot optional). Inserting an already-present quad is a no-op. Same
+ * return convention as oxigraph_update. */
+int oxigraph_add(const OxigraphStore *store, const char *quad,
+                 char **error_out);
+
+/* Removes the quad written as a single N-Quads statement line (trailing
+ * dot optional). Removing an absent quad is a no-op. Same return
+ * convention as oxigraph_update. */
+int oxigraph_remove(const OxigraphStore *store, const char *quad,
+                    char **error_out);
+
 /* Frees a string the library wrote into an out-parameter. NULL is
  * tolerated. */
 void oxigraph_free_string(char *s);

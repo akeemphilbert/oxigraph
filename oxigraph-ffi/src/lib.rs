@@ -17,12 +17,14 @@
 //!   pointers the caller passed in.
 #![expect(unsafe_code)]
 
+use oxigraph::model::Quad;
 use oxigraph::sparql::results::{QueryResultsFormat, QueryResultsSerializer};
 use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::Store;
 use std::ffi::{CStr, CString, c_char, c_int};
 use std::fmt::Write;
 use std::ptr;
+use std::str::FromStr;
 
 /// Query result kinds written to `kind_out` on success.
 pub const OXIGRAPH_RESULT_SOLUTIONS: c_int = 1;
@@ -247,6 +249,135 @@ fn serialize_query_results(results: QueryResults<'_>) -> Result<(Vec<u8>, c_int)
     }
 }
 
+/// Executes a SPARQL update against the store, applied atomically.
+///
+/// Returns 0 on success, or an `OXIGRAPH_ERROR_*` kind on failure with a
+/// caller-owned message written into `error_out`.
+///
+/// # Safety
+///
+/// `store` must be a handle returned by an `oxigraph_open*` function that
+/// has not been closed. `update` must be a valid NUL-terminated C string.
+/// `error_out` must be null or a valid pointer to writable memory.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn oxigraph_update(
+    store: *const OxigraphStore,
+    update: *const c_char,
+    error_out: *mut *mut c_char,
+) -> c_int {
+    // SAFETY: delegated to the caller's contract for every pointer.
+    unsafe {
+        let fail = |kind: c_int, message: &str| {
+            set_error(error_out, message);
+            kind
+        };
+        let Some(store) = store.as_ref() else {
+            return fail(OXIGRAPH_ERROR_EVALUATION, "the store handle must not be null");
+        };
+        if update.is_null() {
+            return fail(OXIGRAPH_ERROR_SYNTAX, "the update must not be null");
+        }
+        let Ok(update) = CStr::from_ptr(update).to_str() else {
+            return fail(OXIGRAPH_ERROR_SYNTAX, "the update is not valid UTF-8");
+        };
+        let parsed = match SparqlEvaluator::new().parse_update(update) {
+            Ok(parsed) => parsed,
+            Err(e) => return fail(OXIGRAPH_ERROR_SYNTAX, &e.to_string()),
+        };
+        match parsed.on_store(&store.store).execute() {
+            Ok(()) => 0,
+            Err(e) => fail(OXIGRAPH_ERROR_EVALUATION, &e.to_string()),
+        }
+    }
+}
+
+/// Inserts the quad written as a single N-Quads statement line (the
+/// trailing dot is optional). Inserting an already-present quad is a
+/// no-op, per RDF set semantics.
+///
+/// Returns 0 on success, or an `OXIGRAPH_ERROR_*` kind on failure with a
+/// caller-owned message written into `error_out`.
+///
+/// # Safety
+///
+/// `store` must be a handle returned by an `oxigraph_open*` function that
+/// has not been closed. `quad` must be a valid NUL-terminated C string.
+/// `error_out` must be null or a valid pointer to writable memory.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn oxigraph_add(
+    store: *const OxigraphStore,
+    quad: *const c_char,
+    error_out: *mut *mut c_char,
+) -> c_int {
+    // SAFETY: delegated to the caller's contract for every pointer.
+    unsafe {
+        with_store_and_quad(store, quad, error_out, |store, quad| {
+            store.insert(quad).map(|_| ())
+        })
+    }
+}
+
+/// Removes the quad written as a single N-Quads statement line (the
+/// trailing dot is optional). Removing an absent quad is a no-op.
+///
+/// Returns 0 on success, or an `OXIGRAPH_ERROR_*` kind on failure with a
+/// caller-owned message written into `error_out`.
+///
+/// # Safety
+///
+/// Same contract as [`oxigraph_add`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn oxigraph_remove(
+    store: *const OxigraphStore,
+    quad: *const c_char,
+    error_out: *mut *mut c_char,
+) -> c_int {
+    // SAFETY: delegated to the caller's contract for every pointer.
+    unsafe {
+        with_store_and_quad(store, quad, error_out, |store, quad| {
+            store.remove(&quad).map(|_| ())
+        })
+    }
+}
+
+/// Shared plumbing for [`oxigraph_add`] and [`oxigraph_remove`]: checks
+/// the pointers, parses the N-Quads statement, and classifies errors.
+///
+/// # Safety
+///
+/// Same contract as [`oxigraph_add`].
+unsafe fn with_store_and_quad(
+    store: *const OxigraphStore,
+    quad: *const c_char,
+    error_out: *mut *mut c_char,
+    operation: impl FnOnce(&Store, Quad) -> Result<(), oxigraph::store::StorageError>,
+) -> c_int {
+    // SAFETY: delegated to the caller's contract for every pointer.
+    unsafe {
+        let fail = |kind: c_int, message: &str| {
+            set_error(error_out, message);
+            kind
+        };
+        let Some(store) = store.as_ref() else {
+            return fail(OXIGRAPH_ERROR_EVALUATION, "the store handle must not be null");
+        };
+        if quad.is_null() {
+            return fail(OXIGRAPH_ERROR_SYNTAX, "the quad must not be null");
+        }
+        let Ok(quad) = CStr::from_ptr(quad).to_str() else {
+            return fail(OXIGRAPH_ERROR_SYNTAX, "the quad is not valid UTF-8");
+        };
+        let quad = match Quad::from_str(quad) {
+            Ok(quad) => quad,
+            Err(e) => return fail(OXIGRAPH_ERROR_SYNTAX, &e.to_string()),
+        };
+        match operation(&store.store, quad) {
+            Ok(()) => 0,
+            Err(e) => fail(OXIGRAPH_ERROR_STORAGE, &e.to_string()),
+        }
+    }
+}
+
 /// Frees a string the library wrote into an out-parameter. Null is
 /// tolerated.
 ///
@@ -387,6 +518,56 @@ mod tests {
         );
         assert_eq!(kind, OXIGRAPH_RESULT_TRIPLES);
         assert!(payload.unwrap().contains("<http://example.com/s>"));
+
+        unsafe { oxigraph_close(store) };
+    }
+
+    fn run_statement(
+        f: unsafe extern "C" fn(*const OxigraphStore, *const c_char, *mut *mut c_char) -> c_int,
+        store: *const OxigraphStore,
+        input: &str,
+    ) -> (c_int, Option<String>) {
+        let c_input = CString::new(input).unwrap();
+        let mut error: *mut c_char = ptr::null_mut();
+        let status = unsafe { f(store, c_input.as_ptr(), &raw mut error) };
+        let message = if error.is_null() { None } else { Some(error_text(error)) };
+        (status, message)
+    }
+
+    #[test]
+    fn add_update_and_remove_round_trip() {
+        let mut error: *mut c_char = ptr::null_mut();
+        let store = unsafe { oxigraph_open_in_memory(&raw mut error) };
+        assert!(!store.is_null());
+
+        let quad = "<http://example.com/s> <http://example.com/p> \"o\" .";
+        let (status, message) = run_statement(oxigraph_add, store, quad);
+        assert_eq!(status, 0, "add failed: {message:?}");
+
+        let (payload, kind, _) = run_query(store, "ASK { <http://example.com/s> ?p ?o }");
+        assert_eq!(kind, OXIGRAPH_RESULT_BOOLEAN);
+        assert!(payload.unwrap().contains("true"));
+
+        let (status, _) = run_statement(oxigraph_remove, store, quad);
+        assert_eq!(status, 0);
+        let (payload, _, _) = run_query(store, "ASK { ?s ?p ?o }");
+        assert!(payload.unwrap().contains("false"));
+
+        let (status, message) = run_statement(
+            oxigraph_update,
+            store,
+            "INSERT DATA { <http://example.com/s2> <http://example.com/p> \"v\" }",
+        );
+        assert_eq!(status, 0, "update failed: {message:?}");
+        let (payload, _, _) = run_query(store, "ASK { <http://example.com/s2> ?p ?o }");
+        assert!(payload.unwrap().contains("true"));
+
+        let (status, message) = run_statement(oxigraph_update, store, "INSRT DATA { }");
+        assert_eq!(status, OXIGRAPH_ERROR_SYNTAX);
+        assert!(!message.unwrap().is_empty());
+
+        let (status, _) = run_statement(oxigraph_add, store, "not a quad");
+        assert_eq!(status, OXIGRAPH_ERROR_SYNTAX);
 
         unsafe { oxigraph_close(store) };
     }

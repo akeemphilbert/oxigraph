@@ -45,6 +45,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	registerParsingSteps(sc, w)
 	registerStoreSteps(sc, w)
 	registerQuerySteps(sc, w)
+	registerUpdateSteps(sc, w)
 }
 
 // stringer returns the last constructed value as a fmt.Stringer, failing
