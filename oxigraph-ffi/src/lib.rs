@@ -19,7 +19,7 @@
 
 use oxigraph::model::Quad;
 use oxigraph::sparql::results::{QueryResultsFormat, QueryResultsSerializer};
-use oxigraph::sparql::{QueryResults, SparqlEvaluator};
+use oxigraph::sparql::{QueryResults, SparqlEvaluator, UpdateEvaluationError};
 use oxigraph::store::Store;
 use std::ffi::{CStr, CString, c_char, c_int};
 use std::fmt::Write;
@@ -286,6 +286,7 @@ pub unsafe extern "C" fn oxigraph_update(
         };
         match parsed.on_store(&store.store).execute() {
             Ok(()) => 0,
+            Err(UpdateEvaluationError::Storage(e)) => fail(OXIGRAPH_ERROR_STORAGE, &e.to_string()),
             Err(e) => fail(OXIGRAPH_ERROR_EVALUATION, &e.to_string()),
         }
     }

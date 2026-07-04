@@ -3,7 +3,6 @@ Feature: SPARQL update execution
   I want to run SPARQL updates against a store
   So that my program rewrites graph data the way a pyoxigraph program does
 
-  @wip
   Scenario: An INSERT DATA update makes its data visible to queries
     Given an open in-memory store
     When the developer runs the update:
@@ -17,7 +16,6 @@ Feature: SPARQL update execution
       | predicate | <http://purl.org/dc/terms/title> |
       | object    | "Le Petit Prince"@fr             |
 
-  @wip
   Scenario: A DELETE DATA update removes the data it names
     Given an open in-memory store
     And the store contains the quad:
@@ -32,7 +30,6 @@ Feature: SPARQL update execution
       """
     Then the store is empty
 
-  @wip
   Scenario: A DELETE DATA update may not reference a blank node
     Given an open in-memory store
     When the developer runs the update:
@@ -43,7 +40,6 @@ Feature: SPARQL update execution
       """
     Then the update fails with a syntax error
 
-  @wip
   Scenario: A rejected update leaves the store unchanged
     Given an open in-memory store
     And the store contains the quad:
@@ -62,7 +58,6 @@ Feature: SPARQL update execution
       | predicate | <http://purl.org/dc/terms/title> |
       | object    | "Le Petit Prince"@fr             |
 
-  @wip
   Scenario Outline: A malformed update is rejected
     Given an open in-memory store
     When the developer runs the update "<update>"
@@ -74,7 +69,6 @@ Feature: SPARQL update execution
       | INSERT DATA { <http://example.com/book/1> <http://purl.org/dc/terms/title> "Vol de Nuit"  |
       | SELECT ?title WHERE { ?book ?p ?title }                                                   |
 
-  @wip
   Scenario: A closed store cannot be updated
     Given an in-memory store that has been closed
     When the developer runs the update "CLEAR ALL"
