@@ -2,6 +2,8 @@
 // opens an in-memory store, adds a quad, and queries it back. CI builds
 // it on a runner with no Rust toolchain to prove the prebuilt static
 // library is all a consumer needs.
+//go:build darwin || linux
+
 package main
 
 import (

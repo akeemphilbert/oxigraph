@@ -1,3 +1,5 @@
+//go:build darwin || linux
+
 // Package features_test runs the Gherkin acceptance contract in this
 // directory against the public oxigraph API with godog. It is an external
 // test package on purpose: every step definition can only reach exported
