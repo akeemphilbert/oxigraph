@@ -2,7 +2,9 @@ package oxigraph
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/../oxigraph-ffi
-#cgo LDFLAGS: -L${SRCDIR}/../target/release -loxigraph_ffi -lc++
+#cgo LDFLAGS: -L${SRCDIR}/../target/release -loxigraph_ffi
+#cgo darwin LDFLAGS: -lc++
+#cgo linux LDFLAGS: -lstdc++ -lm
 #include <stdlib.h>
 #include "oxigraph_ffi.h"
 */

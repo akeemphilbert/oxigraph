@@ -8,7 +8,8 @@
 // the plain literal). Term positions are enforced at compile time through
 // the sealed Term, Subject and GraphName interfaces.
 //
-// Later slices add the embedded Store backed by the oxigraph-ffi C ABI;
-// per ADR 0001, terms never cross that boundary as structured data, so
-// everything in this package stays pure Go.
+// The embedded Store is backed by the oxigraph-ffi C ABI; per ADR 0001,
+// terms never cross that boundary as structured data — they are built,
+// validated and compared in pure Go, and whole operations cross as
+// strings.
 package oxigraph
