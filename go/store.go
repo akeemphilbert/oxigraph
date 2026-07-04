@@ -1,7 +1,6 @@
 package oxigraph
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../oxigraph-ffi
 #include <stdlib.h>
 #include "oxigraph_ffi.h"
 */

@@ -12,7 +12,9 @@ objects or transactions cross the boundary. Fallible functions report
 failure through a `char **error_out` out-parameter; every pointer the
 library hands out is caller-owned and released through exactly one
 matching function (`oxigraph_close`, `oxigraph_free_string`). The C
-declarations live in [`oxigraph_ffi.h`](./oxigraph_ffi.h).
+declarations live in [`go/oxigraph_ffi.h`](../go/oxigraph_ffi.h) — inside
+the Go module, so `go get` consumers receive the header alongside the
+code that includes it.
 
 Build it with:
 

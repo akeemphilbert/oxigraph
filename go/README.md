@@ -20,12 +20,15 @@ defer store.Close()
 
 The store links the `oxigraph-ffi` static library. The cgo directives
 look for it first in `lib/<goos>_<goarch>/` (prebuilt, produced by the
-`go.yml` CI workflow — see [lib/README.md](./lib/README.md), including
-how library updates flow), then in the repository's `target/release` as
-the development fallback. Consumers with a vendored prebuilt library
-need nothing but Go and a C toolchain — CI proves this by building
+`go.yml` CI workflow and vendored at release time — see
+[lib/README.md](./lib/README.md), including how library updates flow),
+then in the repository's `target/release` as the development fallback.
+Consumers with a vendored prebuilt library need nothing but Go and a C
+toolchain — CI proves this by building
 [`examples/quickstart`](./examples/quickstart) on a runner with the
-Rust toolchain removed.
+Rust toolchain removed. A module consumer whose platform library is not
+vendored can point the linker at a downloaded CI artifact instead:
+`CGO_LDFLAGS=-L/path/to/dir go build ./...`.
 
 Binding developers build the library once from the repository root (the
 first build compiles RocksDB and takes a while):

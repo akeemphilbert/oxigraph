@@ -60,6 +60,9 @@ func TestParseSPARQLJSONTermErrors(t *testing.T) {
 		{`{"type": "literal", "value": 42}`, ErrMalformedTerm},
 		{`{"type": "uri", "value": null}`, ErrMalformedTerm},
 		{`[1, 2]`, ErrMalformedTerm},
+		// A single term must be a single JSON value.
+		{`{"type": "literal", "value": "x"} trailing`, ErrMalformedTerm},
+		{`{"type": "literal", "value": "x"}{"type": "literal", "value": "y"}`, ErrMalformedTerm},
 	}
 	for _, c := range cases {
 		_, err := ParseSPARQLJSONTerm([]byte(c.json))

@@ -4,13 +4,19 @@
 `github.com/akeemphilbert/oxigraph/go` module — the engine embedded in your
 process, no server to run.
 
-Add it to your module (the binding uses cgo, so you need a C toolchain; the
-Rust engine ships as a prebuilt static library, so you do **not** need Rust —
-see [the module README](../../../go/README.md) for how the library is found):
+Add it to your module (the binding uses cgo, so you need a C toolchain):
 
 ```sh
 go get github.com/akeemphilbert/oxigraph/go
 ```
+
+The Rust engine links as a static library. Releases vendor prebuilt
+libraries for the common platforms into the module, so you do **not**
+need Rust; if your platform's library is not vendored in the version you
+use, either build it once from a repository checkout
+(`cargo build -p oxigraph-ffi --release`) or download a `liboxigraph-ffi`
+CI artifact and point `CGO_LDFLAGS` at its directory. See
+[the module README](../../../go/README.md) for how the library is found.
 
 Insert a quad and query it back:
 

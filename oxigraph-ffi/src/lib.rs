@@ -444,7 +444,15 @@ pub unsafe extern "C" fn oxigraph_load(
                 "unknown RDF format identifier",
             );
         };
-        let data: &[u8] = if data.is_null() || len == 0 {
+        let data: &[u8] = if data.is_null() {
+            if len != 0 {
+                return fail(
+                    OXIGRAPH_ERROR_EVALUATION,
+                    "data must not be null when len is not zero",
+                );
+            }
+            &[]
+        } else if len == 0 {
             &[]
         } else {
             std::slice::from_raw_parts(data.cast(), len)

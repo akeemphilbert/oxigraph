@@ -3,7 +3,9 @@ package oxigraph
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 )
 
 // sparqlJSONTerm is the wire shape of one RDF term in the SPARQL 1.1 Query
@@ -34,6 +36,9 @@ func ParseSPARQLJSONTerm(data json.RawMessage) (Term, error) {
 	var raw sparqlJSONTerm
 	if err := decoder.Decode(&raw); err != nil {
 		return nil, malformed(err.Error())
+	}
+	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
+		return nil, malformed("trailing data after the term")
 	}
 	if raw.Type == nil {
 		return nil, malformed("a term must have a 'type' key")
