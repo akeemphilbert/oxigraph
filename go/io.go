@@ -65,7 +65,7 @@ func (f RdfFormat) valid() bool {
 // call. The returned error matches ErrUnsupportedFormat for a format
 // this package does not define, ErrSyntax for a malformed document
 // (carrying the engine's message with line and column), ErrStorage, or
-// ErrStoreClosed.
+// ErrStoreClosed; an error from reading r is returned as-is.
 func (s *Store) Load(r io.Reader, format RdfFormat) error {
 	if !format.valid() {
 		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, format)
@@ -109,7 +109,7 @@ func (s *Store) Load(r io.Reader, format RdfFormat) error {
 // format (NQuads or TriG): triples-only formats return
 // ErrUnsupportedFormat, as pyoxigraph's dump refuses them without a
 // graph scope. The returned error also matches ErrStoreClosed and
-// ErrStorage.
+// ErrStorage; an error from writing to w is returned as-is.
 func (s *Store) Dump(w io.Writer, format RdfFormat) error {
 	if !format.valid() {
 		return fmt.Errorf("%w: %s", ErrUnsupportedFormat, format)

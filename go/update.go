@@ -19,8 +19,9 @@ import (
 // Add inserts a quad into the store, mirroring pyoxigraph's Store.add.
 // Inserting an already-present quad is a no-op, per RDF set semantics.
 // The quad crosses the FFI as one N-Quads statement, so blank node
-// identity is preserved. The returned error matches ErrStorage or
-// ErrStoreClosed.
+// identity is preserved. The returned error matches ErrStorage,
+// ErrStoreClosed, or ErrSyntax when the quad's serialized form is
+// rejected (for example a NUL byte in a term).
 func (s *Store) Add(quad Quad) error {
 	return s.statement(func(ptr *C.OxigraphStore, line *C.char, cError **C.char) C.int {
 		return C.oxigraph_add(ptr, line, cError)
@@ -28,7 +29,8 @@ func (s *Store) Add(quad Quad) error {
 }
 
 // Remove deletes a quad from the store, mirroring pyoxigraph's
-// Store.remove. Removing an absent quad is a no-op.
+// Store.remove. Removing an absent quad is a no-op. Errors classify as
+// Add's do.
 func (s *Store) Remove(quad Quad) error {
 	return s.statement(func(ptr *C.OxigraphStore, line *C.char, cError **C.char) C.int {
 		return C.oxigraph_remove(ptr, line, cError)
