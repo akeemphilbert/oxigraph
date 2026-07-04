@@ -189,7 +189,7 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: rocksdb
-          key: ${{ runner.os }}-rocksdb-9.10.0
+          key: ${{ runner.os }}-rocksdb-9.10.0-portable
       - run: bash .github/workflows/install_rocksdb.sh
       # Advisory on this fork: it compares against the published crates.io
       # versions, and upstream main carries unreleased API changes until
@@ -295,7 +295,7 @@ jobs:
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: rocksdb
-          key: ${{ runner.os }}-rocksdb-9.10.0
+          key: ${{ runner.os }}-rocksdb-9.10.0-portable
       - run: bash .github/workflows/install_rocksdb.sh
       - run: cargo test --tests --package oxigraph --features oxrocksdb-sys/pkg-config
 
