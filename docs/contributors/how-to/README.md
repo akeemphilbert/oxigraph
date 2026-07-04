@@ -14,4 +14,5 @@ working on the individual components.
 
 - [Work on the Python bindings (pyoxigraph)](python-bindings.md)
 - [Work on the JavaScript bindings](js-bindings.md)
+- [Work on the Go binding](go-binding.md)
 - [Work on the CLI and server](cli.md)
