@@ -177,10 +177,6 @@ jobs:
       - run: cargo deny check
 
   semver_checks:
-    # Compares against the published crates.io versions. This fork tracks
-    # upstream main, which carries unreleased API changes until upstream
-    # bumps the crate versions, so the job is advisory here.
-    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
@@ -195,7 +191,11 @@ jobs:
           path: rocksdb
           key: ${{ runner.os }}-rocksdb-9.10.0
       - run: bash .github/workflows/install_rocksdb.sh
+      # Advisory on this fork: it compares against the published crates.io
+      # versions, and upstream main carries unreleased API changes until
+      # upstream bumps the crate versions.
       - run: cargo semver-checks check-release --exclude oxrocksdb-sys --exclude oxigraph-js --exclude pyoxigraph --exclude oxigraph-testsuite --exclude oxigraph-cli
+        continue-on-error: true
 
   test_macos:
     runs-on: macos-latest
