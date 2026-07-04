@@ -8,6 +8,6 @@ package oxigraph
 // staticlib's native-static-libs note. See lib/README.md.
 
 /*
-#cgo LDFLAGS: -L${SRCDIR}/lib/windows_amd64 -L${SRCDIR}/../target/x86_64-pc-windows-gnu/release -loxigraph_ffi -lrpcrt4 -lshlwapi -lstdc++ -lkernel32 -lntdll -luserenv -lws2_32 -ldbghelp
+#cgo LDFLAGS: -L${SRCDIR}/lib/windows_amd64 -L${SRCDIR}/../target/x86_64-pc-windows-gnu/release -loxigraph_ffi -lrpcrt4 -lshlwapi -static-libgcc -static -lstdc++ -lkernel32 -lntdll -luserenv -lws2_32 -ldbghelp
 */
 import "C"
