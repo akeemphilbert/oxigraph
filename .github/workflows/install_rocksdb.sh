@@ -1,4 +1,4 @@
-if [ -f "rocksdb" ]
+if [ -d "rocksdb" ]
 then
   cd rocksdb || exit
 else

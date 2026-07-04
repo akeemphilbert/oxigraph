@@ -3,3 +3,5 @@ extend-exclude = ["**/*.svg"]
 
 [default.extend-words]
 pn = "pn" # Common abbreviation in Turtle grammar
+selct = "selct" # Intentionally malformed SPARQL in the Go binding tests
+insrt = "insrt" # Intentionally malformed SPARQL in the Go binding tests

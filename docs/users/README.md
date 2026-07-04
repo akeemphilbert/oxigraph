@@ -5,7 +5,7 @@ Documentation for people who want to install, run, and query Oxigraph.
 - **[Tutorials](tutorials/README.md)** — learn by doing: install Oxigraph and run
   your first SPARQL query.
 - **[How-to guides](how-to/README.md)** — task recipes: use Oxigraph from Rust,
-  Python, JavaScript, or over HTTP.
+  Python, JavaScript, Go, or over HTTP.
 - **[Reference](reference/README.md)** — where to look things up: the published API
   documentation for each package.
 - **[Explanation](explanation/README.md)** — background on what Oxigraph is and how
@@ -13,7 +13,7 @@ Documentation for people who want to install, run, and query Oxigraph.
 
 ## Which interface should I use?
 
-Oxigraph ships as a standalone server and as an embedded library for three
+Oxigraph ships as a standalone server and as an embedded library for four
 languages. All of them expose the same store and the same SPARQL engine:
 
 ```mermaid
@@ -25,13 +25,15 @@ flowchart TD
     lang -- Rust --> rust["oxigraph crate<br/>(embedded, in-memory or on-disk)"]
     lang -- Python --> python["pyoxigraph package<br/>(embedded, in-memory or on-disk)"]
     lang -- JavaScript --> js["oxigraph npm package<br/>(in-memory, WebAssembly)"]
+    lang -- Go --> golang["go module over the C ABI<br/>(embedded, in-memory or on-disk)"]
     lang -- "Anything else" --> http
 ```
 
 Start with [the getting-started tutorial](tutorials/getting-started.md) for the
 server path, or jump straight to the how-to guide for
 [Rust](how-to/rust.md), [Python](how-to/python.md),
-[JavaScript](how-to/javascript.md), or [HTTP](how-to/http.md).
+[JavaScript](how-to/javascript.md), [Go](how-to/go.md), or
+[HTTP](how-to/http.md).
 
 If you want to change Oxigraph itself, head over to the
 [contributor documentation](../contributors/README.md).

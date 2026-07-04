@@ -191,7 +191,11 @@ jobs:
           path: rocksdb
           key: ${{ runner.os }}-rocksdb-9.10.0
       - run: bash .github/workflows/install_rocksdb.sh
+      # Advisory on this fork: it compares against the published crates.io
+      # versions, and upstream main carries unreleased API changes until
+      # upstream bumps the crate versions.
       - run: cargo semver-checks check-release --exclude oxrocksdb-sys --exclude oxigraph-js --exclude pyoxigraph --exclude oxigraph-testsuite --exclude oxigraph-cli
+        continue-on-error: true
 
   test_macos:
     runs-on: macos-latest
@@ -307,7 +311,7 @@ jobs:
           target: wasm32-wasip1
       - uses: taiki-e/install-action@8b3c737da4b541bf0fb5a3e0488ff20535badac9 # v2.82.1
         with: { tool: "wasmtime" }
-      - run: cargo test --target wasm32-wasip1 --workspace --exclude oxigraph-js --exclude oxigraph-cli --exclude oxigraph-testsuite --exclude oxrocksdb-sys --exclude pyoxigraph
+      - run: cargo test --target wasm32-wasip1 --workspace --exclude oxigraph-js --exclude oxigraph-cli --exclude oxigraph-testsuite --exclude oxrocksdb-sys --exclude pyoxigraph --exclude oxigraph-ffi
         env:
           CARGO_TARGET_WASM32_WASIP1_RUNNER: wasmtime --dir /tmp/
           WASMTIME_BACKTRACE_DETAILS: 1

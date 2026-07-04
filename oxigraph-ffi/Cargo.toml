@@ -1,0 +1,26 @@
+[package]
+name = "oxigraph-ffi"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+readme = "README.md"
+keywords = ["RDF", "SPARQL", "graph-database", "database", "ffi"]
+repository = "https://github.com/oxigraph/oxigraph/tree/main/oxigraph-ffi"
+description = """
+C ABI for embedding Oxigraph in other languages (used by the Go binding)
+"""
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+name = "oxigraph_ffi"
+doc = false
+doctest = false
+
+[dependencies]
+oxigraph = { workspace = true, default-features = true }
+
+[lints]
+workspace = true
