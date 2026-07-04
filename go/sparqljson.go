@@ -51,7 +51,7 @@ func ParseSPARQLJSONTerm(data json.RawMessage) (Term, error) {
 		return nil, &ParseError{
 			Kind:   ErrUnsupportedTermType,
 			Input:  *raw.Type,
-			Detail: "supported term types are 'uri', 'bnode' and 'literal'",
+			Detail: "supported term types are 'uri', 'bnode', 'literal' and the legacy 'typed-literal'",
 		}
 	}
 	if raw.Value == nil {
