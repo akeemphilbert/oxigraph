@@ -16,27 +16,32 @@ if err != nil {
 defer store.Close()
 ```
 
-## Development builds
+## Building
 
-The store requires the `oxigraph-ffi` static library. Build it once from
-the repository root (the first build compiles RocksDB and takes a while):
+The store links the `oxigraph-ffi` static library. The cgo directives
+look for it first in `lib/<goos>_<goarch>/` (prebuilt, produced by the
+`go.yml` CI workflow — see [lib/README.md](./lib/README.md), including
+how library updates flow), then in the repository's `target/release` as
+the development fallback. Consumers with a vendored prebuilt library
+need nothing but Go and a C toolchain — CI proves this by building
+[`examples/quickstart`](./examples/quickstart) on a runner with the
+Rust toolchain removed.
+
+Binding developers build the library once from the repository root (the
+first build compiles RocksDB and takes a while):
 
 ```sh
 cargo build -p oxigraph-ffi --release
 ```
 
 Then everything in this module builds and tests with a stock cgo
-toolchain:
+toolchain (the platform C++ runtime is linked automatically: libc++ on
+macOS, libstdc++ on Linux):
 
 ```sh
 cd go
 go test ./...
 ```
-
-The cgo directives in `store.go` link `target/release/liboxigraph_ffi.a`
-plus the platform C++ runtime (`-lc++` on macOS). Prebuilt static
-libraries for consumers outside this repository ship in a later story, so
-`go get` users will not need Rust.
 
 ## Tests
 
