@@ -4,7 +4,8 @@
 `github.com/akeemphilbert/oxigraph/go` module — the engine embedded in your
 process, no server to run.
 
-Add it to your module (the binding uses cgo, so you need a C toolchain):
+Add it to your module (the binding uses cgo, so you need a C toolchain —
+on Windows that means MinGW-w64, the toolchain cgo links with):
 
 ```sh
 go get github.com/akeemphilbert/oxigraph/go

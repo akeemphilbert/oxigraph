@@ -10,9 +10,10 @@ the per-platform directory here, then in the repository's
 | `darwin_amd64/` | macOS Intel |
 | `linux_amd64/` | Linux x86_64 (glibc) |
 | `linux_arm64/` | Linux aarch64 (glibc) |
+| `windows_amd64/` | Windows x86_64 (MinGW — built for `x86_64-pc-windows-gnu`; Go's cgo links with MinGW, so an MSVC-built library cannot be used) |
 
 The `.a` files are not committed; the `go.yml` CI workflow builds all
-four (job `ffi_artifact`, mirroring `artifacts.yml`'s runner matrix) and
+five (job `ffi_artifact`, mirroring `artifacts.yml`'s runner matrix) and
 uploads them as workflow artifacts, and its `consumer_no_rust` job
 proves a `go build` succeeds with one of them on a runner with the Rust
 toolchain removed.

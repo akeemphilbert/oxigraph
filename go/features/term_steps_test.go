@@ -1,4 +1,4 @@
-//go:build (darwin || linux) && (amd64 || arm64)
+//go:build (((darwin || linux) && (amd64 || arm64)) || (windows && amd64)) && cgo
 
 package features_test
 

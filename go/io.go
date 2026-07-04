@@ -1,7 +1,7 @@
 // The embedded store requires cgo and a platform the oxigraph-ffi
 // static library is built for; the RDF term model in the rest of the
 // package is pure Go and builds everywhere.
-//go:build (darwin || linux) && (amd64 || arm64)
+//go:build ((darwin || linux) && (amd64 || arm64)) || (windows && amd64)
 
 package oxigraph
 
