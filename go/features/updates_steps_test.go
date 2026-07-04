@@ -125,7 +125,13 @@ func (w *world) runsUpdate(update string) error {
 // storeContains asks the store whether the quad described by the table
 // is present, scoping the pattern to its graph.
 func (w *world) storeContains(table *godog.Table) (bool, error) {
-	if w.store == nil {
+	return containsQuad(w.store, table)
+}
+
+// containsQuad asks a store whether the quad described by the table is
+// present, scoping the pattern to its graph.
+func containsQuad(store *oxigraph.Store, table *godog.Table) (bool, error) {
+	if store == nil {
 		return false, errors.New("no store is open")
 	}
 	quad, err := quadFromTable(table)
@@ -137,7 +143,7 @@ func (w *world) storeContains(table *godog.Table) (bool, error) {
 	if quad.GraphName != oxigraph.GraphName(oxigraph.DefaultGraph()) {
 		query = "ASK { GRAPH " + quad.GraphName.String() + " { " + pattern + " } }"
 	}
-	results, err := w.store.Query(query)
+	results, err := store.Query(query)
 	if err != nil {
 		return false, err
 	}
@@ -146,10 +152,15 @@ func (w *world) storeContains(table *godog.Table) (bool, error) {
 
 // storeQuadCount counts the quads across the default and named graphs.
 func (w *world) storeQuadCount() (int, error) {
-	if w.store == nil {
+	return quadCount(w.store)
+}
+
+// quadCount counts a store's quads across the default and named graphs.
+func quadCount(store *oxigraph.Store) (int, error) {
+	if store == nil {
 		return 0, errors.New("no store is open")
 	}
-	results, err := w.store.Query(
+	results, err := store.Query(
 		`SELECT (COUNT(*) AS ?n) WHERE { { ?s ?p ?o } UNION { GRAPH ?g { ?s ?p ?o } } }`)
 	if err != nil {
 		return 0, err

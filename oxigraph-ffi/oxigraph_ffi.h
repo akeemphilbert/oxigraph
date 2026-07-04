@@ -12,6 +12,8 @@
 #ifndef OXIGRAPH_FFI_H
 #define OXIGRAPH_FFI_H
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -27,6 +29,7 @@ typedef struct OxigraphStore OxigraphStore;
 #define OXIGRAPH_ERROR_SYNTAX (-1)
 #define OXIGRAPH_ERROR_EVALUATION (-2)
 #define OXIGRAPH_ERROR_STORAGE (-3)
+#define OXIGRAPH_ERROR_UNSUPPORTED_FORMAT (-4)
 
 /* Opens a read-write store backed by RocksDB at path, creating the leaf
  * directory if missing (parent directories are not created). */
@@ -65,6 +68,20 @@ int oxigraph_add(const OxigraphStore *store, const char *quad,
  * dot optional). Removing an absent quad is a no-op. Same return
  * convention as oxigraph_update. */
 int oxigraph_remove(const OxigraphStore *store, const char *quad,
+                    char **error_out);
+
+/* Loads an RDF document into the store, atomically. format is one of
+ * "Turtle", "N-Triples", "N-Quads" or "TriG"; data points to len bytes
+ * and may be NULL when len is 0. Same return convention as
+ * oxigraph_update. */
+int oxigraph_load(const OxigraphStore *store, const char *format,
+                  const char *data, size_t len, char **error_out);
+
+/* Serializes the whole store (default and named graphs) into a
+ * caller-owned string. format must be a dataset format ("N-Quads" or
+ * "TriG"). Returns NULL on failure, writing a caller-owned message into
+ * *error_out. */
+char *oxigraph_dump(const OxigraphStore *store, const char *format,
                     char **error_out);
 
 /* Frees a string the library wrote into an out-parameter. NULL is

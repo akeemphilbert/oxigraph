@@ -17,6 +17,7 @@ var (
 	ErrStorage             = errors.New("oxigraph: storage error")
 	ErrStoreClosed         = errors.New("oxigraph: store already closed")
 	ErrEvaluation          = errors.New("oxigraph: evaluation error")
+	ErrUnsupportedFormat   = errors.New("oxigraph: unsupported RDF format")
 )
 
 // ParseError reports why an input was rejected. Kind is one of the Err*

@@ -22,6 +22,9 @@ func registerStoreSteps(sc *godog.ScenarioContext, w *world) {
 		if w.store != nil {
 			_ = w.store.Close()
 		}
+		if w.secondStore != nil {
+			_ = w.secondStore.Close()
+		}
 		if w.workspace != "" {
 			_ = os.RemoveAll(w.workspace)
 		}

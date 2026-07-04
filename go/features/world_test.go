@@ -32,6 +32,10 @@ type world struct {
 	storesByName map[string]*oxigraph.Store // stores opened by name
 	query        oxigraph.QueryResults      // last query's results
 	hasQuery     bool
+	dump         string // last successful dump's text
+	dumpFormat   oxigraph.RdfFormat
+	hasDump      bool
+	secondStore  *oxigraph.Store // reload target for dump round trips
 }
 
 func InitializeScenario(sc *godog.ScenarioContext) {
@@ -46,6 +50,7 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	registerStoreSteps(sc, w)
 	registerQuerySteps(sc, w)
 	registerUpdateSteps(sc, w)
+	registerIOSteps(sc, w)
 }
 
 // stringer returns the last constructed value as a fmt.Stringer, failing

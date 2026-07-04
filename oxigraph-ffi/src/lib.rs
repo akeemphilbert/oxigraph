@@ -17,10 +17,11 @@
 //!   pointers the caller passed in.
 #![expect(unsafe_code)]
 
+use oxigraph::io::{RdfFormat, RdfParser, RdfSerializer};
 use oxigraph::model::Quad;
 use oxigraph::sparql::results::{QueryResultsFormat, QueryResultsSerializer};
 use oxigraph::sparql::{QueryResults, SparqlEvaluator, UpdateEvaluationError};
-use oxigraph::store::Store;
+use oxigraph::store::{LoaderError, SerializerError, Store};
 use std::ffi::{CStr, CString, c_char, c_int};
 use std::fmt::Write;
 use std::ptr;
@@ -35,6 +36,7 @@ pub const OXIGRAPH_RESULT_TRIPLES: c_int = 3;
 pub const OXIGRAPH_ERROR_SYNTAX: c_int = -1;
 pub const OXIGRAPH_ERROR_EVALUATION: c_int = -2;
 pub const OXIGRAPH_ERROR_STORAGE: c_int = -3;
+pub const OXIGRAPH_ERROR_UNSUPPORTED_FORMAT: c_int = -4;
 
 /// An opaque handle around an open [`Store`].
 pub struct OxigraphStore {
@@ -379,6 +381,123 @@ unsafe fn with_store_and_quad(
     }
 }
 
+/// Resolves a format identifier (pyoxigraph's RdfFormat naming) to a
+/// format.
+fn rdf_format_from_name(name: &str) -> Option<RdfFormat> {
+    match name {
+        "Turtle" => Some(RdfFormat::Turtle),
+        "N-Triples" => Some(RdfFormat::NTriples),
+        "N-Quads" => Some(RdfFormat::NQuads),
+        "TriG" => Some(RdfFormat::TriG),
+        _ => None,
+    }
+}
+
+/// Loads an RDF document into the store, atomically: either every quad
+/// is inserted or none is. `format` is one of "Turtle", "N-Triples",
+/// "N-Quads" or "TriG". `data` points to `len` bytes of document text
+/// and may be null when `len` is 0.
+///
+/// Returns 0 on success, or an `OXIGRAPH_ERROR_*` kind on failure with a
+/// caller-owned message written into `error_out`.
+///
+/// # Safety
+///
+/// `store` must be a handle returned by an `oxigraph_open*` function that
+/// has not been closed. `format` must be a valid NUL-terminated C string.
+/// `data` must be null (only when `len` is 0) or point to `len` readable
+/// bytes. `error_out` must be null or a valid pointer to writable memory.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn oxigraph_load(
+    store: *const OxigraphStore,
+    format: *const c_char,
+    data: *const c_char,
+    len: usize,
+    error_out: *mut *mut c_char,
+) -> c_int {
+    // SAFETY: delegated to the caller's contract for every pointer.
+    unsafe {
+        let fail = |kind: c_int, message: &str| {
+            set_error(error_out, message);
+            kind
+        };
+        let Some(store) = store.as_ref() else {
+            return fail(OXIGRAPH_ERROR_EVALUATION, "the store handle must not be null");
+        };
+        let Some(format) = parse_format(format) else {
+            return fail(OXIGRAPH_ERROR_UNSUPPORTED_FORMAT, "unknown RDF format identifier");
+        };
+        let data: &[u8] = if data.is_null() || len == 0 {
+            &[]
+        } else {
+            std::slice::from_raw_parts(data.cast(), len)
+        };
+        match store.store.load_from_slice(RdfParser::from_format(format), data) {
+            Ok(()) => 0,
+            Err(LoaderError::Parsing(e)) => fail(OXIGRAPH_ERROR_SYNTAX, &e.to_string()),
+            Err(LoaderError::Storage(e)) => fail(OXIGRAPH_ERROR_STORAGE, &e.to_string()),
+            Err(e) => fail(OXIGRAPH_ERROR_EVALUATION, &e.to_string()),
+        }
+    }
+}
+
+/// Serializes the whole store (default and named graphs) into a
+/// caller-owned string. `format` must be a dataset format ("N-Quads" or
+/// "TriG"); triples-only formats are rejected with
+/// `OXIGRAPH_ERROR_UNSUPPORTED_FORMAT`, matching pyoxigraph's dump.
+///
+/// Returns null on failure, writing a caller-owned message into
+/// `error_out`.
+///
+/// # Safety
+///
+/// Same contract as [`oxigraph_load`] for `store`, `format` and
+/// `error_out`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn oxigraph_dump(
+    store: *const OxigraphStore,
+    format: *const c_char,
+    error_out: *mut *mut c_char,
+) -> *mut c_char {
+    // SAFETY: delegated to the caller's contract for every pointer.
+    unsafe {
+        let fail = |message: &str| {
+            set_error(error_out, message);
+            ptr::null_mut()
+        };
+        let Some(store) = store.as_ref() else {
+            return fail("the store handle must not be null");
+        };
+        let Some(format) = parse_format(format) else {
+            return fail("unknown RDF format identifier");
+        };
+        match store.store.dump_to_writer(RdfSerializer::from_format(format), Vec::new()) {
+            Ok(buffer) => match CString::new(buffer) {
+                Ok(payload) => payload.into_raw(),
+                Err(_) => fail("the dump contains a NUL byte"),
+            },
+            Err(SerializerError::DatasetFormatExpected(format)) => fail(&format!(
+                "{format} stores triples only; dump the whole store with a dataset format such as N-Quads or TriG"
+            )),
+            Err(e) => fail(&e.to_string()),
+        }
+    }
+}
+
+/// Parses a format identifier C string.
+///
+/// # Safety
+///
+/// `format` must be null or a valid NUL-terminated C string.
+unsafe fn parse_format(format: *const c_char) -> Option<RdfFormat> {
+    if format.is_null() {
+        return None;
+    }
+    // SAFETY: format is a valid NUL-terminated C string per the contract.
+    let format = unsafe { CStr::from_ptr(format) };
+    rdf_format_from_name(format.to_str().ok()?)
+}
+
 /// Frees a string the library wrote into an out-parameter. Null is
 /// tolerated.
 ///
@@ -569,6 +688,58 @@ mod tests {
 
         let (status, _) = run_statement(oxigraph_add, store, "not a quad");
         assert_eq!(status, OXIGRAPH_ERROR_SYNTAX);
+
+        unsafe { oxigraph_close(store) };
+    }
+
+    #[test]
+    fn load_and_dump_round_trip() {
+        let mut error: *mut c_char = ptr::null_mut();
+        let store = unsafe { oxigraph_open_in_memory(&raw mut error) };
+        assert!(!store.is_null());
+
+        let turtle = "<http://example.com/s> <http://example.com/p> \"o\" .";
+        let c_format = CString::new("Turtle").unwrap();
+        let mut load_error: *mut c_char = ptr::null_mut();
+        let status = unsafe {
+            oxigraph_load(
+                store,
+                c_format.as_ptr(),
+                turtle.as_ptr().cast(),
+                turtle.len(),
+                &raw mut load_error,
+            )
+        };
+        assert_eq!(status, 0);
+
+        let c_nquads = CString::new("N-Quads").unwrap();
+        let mut dump_error: *mut c_char = ptr::null_mut();
+        let dump = unsafe { oxigraph_dump(store, c_nquads.as_ptr(), &raw mut dump_error) };
+        assert!(!dump.is_null());
+        let text = unsafe { CStr::from_ptr(dump) }.to_str().unwrap().to_owned();
+        unsafe { oxigraph_free_string(dump) };
+        assert!(text.contains("<http://example.com/s>"));
+
+        // Triples-only dump is rejected.
+        let mut turtle_error: *mut c_char = ptr::null_mut();
+        let rejected = unsafe { oxigraph_dump(store, c_format.as_ptr(), &raw mut turtle_error) };
+        assert!(rejected.is_null());
+        assert!(error_text(turtle_error).contains("Turtle"));
+
+        // A malformed document reports the line and loads nothing.
+        let broken = "<http://example.com/s> <http://example.com/p> .";
+        let mut broken_error: *mut c_char = ptr::null_mut();
+        let status = unsafe {
+            oxigraph_load(
+                store,
+                c_format.as_ptr(),
+                broken.as_ptr().cast(),
+                broken.len(),
+                &raw mut broken_error,
+            )
+        };
+        assert_eq!(status, OXIGRAPH_ERROR_SYNTAX);
+        assert!(error_text(broken_error).contains("line"));
 
         unsafe { oxigraph_close(store) };
     }
