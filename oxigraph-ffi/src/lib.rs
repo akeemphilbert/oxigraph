@@ -415,6 +415,10 @@ fn rdf_format_from_name(name: &str) -> Option<RdfFormat> {
         "N-Triples" => Some(RdfFormat::NTriples),
         "N-Quads" => Some(RdfFormat::NQuads),
         "TriG" => Some(RdfFormat::TriG),
+        // JSON-LD carries a profile, so build it via the media type rather
+        // than a bare variant. The engine (oxrdfio) already supports it; the
+        // name map just did not expose it.
+        "JSON-LD" => RdfFormat::from_media_type("application/ld+json"),
         _ => None,
     }
 }

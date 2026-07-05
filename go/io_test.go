@@ -130,3 +130,27 @@ func TestRdfFormatString(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadJSONLD(t *testing.T) {
+	store := mustInMemoryStore(t)
+	// A JSON-LD document with an explicit @context, IRIs and a typed value.
+	doc := `{
+		"@context": {"name": "http://schema.org/name", "Person": "http://schema.org/Person"},
+		"@id": "http://example.com/alice",
+		"@type": "Person",
+		"name": "Alice"
+	}`
+	if err := store.Load(strings.NewReader(doc), JsonLd); err != nil {
+		t.Fatalf("Load JSON-LD: %v", err)
+	}
+	res, err := store.Query(`SELECT ?name WHERE { <http://example.com/alice> <http://schema.org/name> ?name }`)
+	if err != nil {
+		t.Fatalf("Query: %v", err)
+	}
+	if len(res.Solutions) != 1 {
+		t.Fatalf("got %d solutions, want 1", len(res.Solutions))
+	}
+	if name, ok := res.Solutions[0].Get("name"); !ok || name != Term(NewLiteral("Alice")) {
+		t.Errorf("name = %v (%v), want \"Alice\"", name, ok)
+	}
+}

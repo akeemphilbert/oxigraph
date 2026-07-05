@@ -31,6 +31,8 @@ const (
 	NQuads
 	// TriG is https://www.w3.org/TR/trig/ (datasets).
 	TriG
+	// JsonLd is https://www.w3.org/TR/json-ld11/ .
+	JsonLd
 )
 
 // String returns the format's canonical name.
@@ -44,6 +46,8 @@ func (f RdfFormat) String() string {
 		return "N-Quads"
 	case TriG:
 		return "TriG"
+	case JsonLd:
+		return "JSON-LD"
 	default:
 		return fmt.Sprintf("RdfFormat(%d)", int(f))
 	}
@@ -55,7 +59,7 @@ func (f RdfFormat) supportsDatasets() bool {
 }
 
 func (f RdfFormat) valid() bool {
-	return f >= Turtle && f <= TriG
+	return f >= Turtle && f <= JsonLd
 }
 
 // Load reads an RDF document from r and inserts its data into the
