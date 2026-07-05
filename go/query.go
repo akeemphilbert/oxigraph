@@ -38,6 +38,13 @@ type QueryResults struct {
 	Solutions []Solution
 	Bool      bool
 	Triples   []Triple
+	// Vars lists the projected variable names of a SELECT result, in the
+	// order the query declared them (from the results' head.vars), mirroring
+	// pyoxigraph's QuerySolutions.variables. Empty for ASK and
+	// CONSTRUCT/DESCRIBE. Lets a consumer enumerate a solution's columns —
+	// Solution only offers Get(name) by design, so without this the variable
+	// set of a generic SELECT is otherwise unrecoverable.
+	Vars []string
 }
 
 // Solution is one row of a SELECT result, mirroring pyoxigraph's
@@ -110,6 +117,9 @@ func queryError(kind C.int, cError *C.char) error {
 // sparqlJSONResults is the SPARQL 1.1 Query Results JSON envelope for
 // SELECT (results.bindings) and ASK (boolean) results.
 type sparqlJSONResults struct {
+	Head struct {
+		Vars []string `json:"vars"`
+	} `json:"head"`
 	Boolean *bool `json:"boolean"`
 	Results *struct {
 		Bindings []map[string]json.RawMessage `json:"bindings"`
@@ -143,7 +153,7 @@ func parseJSONQueryResults(payload string) (QueryResults, error) {
 		}
 		solutions = append(solutions, Solution{bindings: bindings})
 	}
-	return QueryResults{Kind: QuerySolutions, Solutions: solutions}, nil
+	return QueryResults{Kind: QuerySolutions, Solutions: solutions, Vars: envelope.Head.Vars}, nil
 }
 
 func parseNTriplesQueryResults(payload string) (QueryResults, error) {
