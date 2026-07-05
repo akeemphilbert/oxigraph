@@ -31,7 +31,7 @@ const (
 	NQuads
 	// TriG is https://www.w3.org/TR/trig/ (datasets).
 	TriG
-	// JsonLd is https://www.w3.org/TR/json-ld11/ .
+	// JsonLd is https://www.w3.org/TR/json-ld11/ (datasets).
 	JsonLd
 )
 
@@ -54,8 +54,10 @@ func (f RdfFormat) String() string {
 }
 
 // supportsDatasets reports whether the format can carry named graphs.
+// JSON-LD encodes named graphs via @graph, so the engine treats it as a
+// dataset format alongside N-Quads and TriG.
 func (f RdfFormat) supportsDatasets() bool {
-	return f == NQuads || f == TriG
+	return f == NQuads || f == TriG || f == JsonLd
 }
 
 func (f RdfFormat) valid() bool {
@@ -110,7 +112,7 @@ func (s *Store) Load(r io.Reader, format RdfFormat) error {
 
 // Dump serializes the whole store — default and named graphs — to w,
 // mirroring pyoxigraph's Store.dump. The format must be a dataset
-// format (NQuads or TriG): triples-only formats return
+// format (NQuads, TriG or JsonLd): triples-only formats return
 // ErrUnsupportedFormat, as pyoxigraph's dump refuses them without a
 // graph scope. The returned error also matches ErrStoreClosed and
 // ErrStorage; an error from writing to w is returned as-is.

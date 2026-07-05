@@ -133,7 +133,7 @@ func TestRdfFormatString(t *testing.T) {
 
 func TestLoadJSONLD(t *testing.T) {
 	store := mustInMemoryStore(t)
-	// A JSON-LD document with an explicit @context, IRIs and a typed value.
+	// A JSON-LD document with an explicit @context, IRIs and an rdf:type.
 	doc := `{
 		"@context": {"name": "http://schema.org/name", "Person": "http://schema.org/Person"},
 		"@id": "http://example.com/alice",
@@ -152,5 +152,19 @@ func TestLoadJSONLD(t *testing.T) {
 	}
 	if name, ok := res.Solutions[0].Get("name"); !ok || name != Term(NewLiteral("Alice")) {
 		t.Errorf("name = %v (%v), want \"Alice\"", name, ok)
+	}
+
+	// JSON-LD is a dataset format, so Dump must accept it; round-trip
+	// through a fresh store to confirm the serialization reloads.
+	var dump strings.Builder
+	if err := store.Dump(&dump, JsonLd); err != nil {
+		t.Fatalf("Dump JSON-LD: %v", err)
+	}
+	reloaded := mustInMemoryStore(t)
+	if err := reloaded.Load(strings.NewReader(dump.String()), JsonLd); err != nil {
+		t.Fatalf("reload JSON-LD dump: %v", err)
+	}
+	if !askTrue(t, reloaded, `ASK { <http://example.com/alice> <http://schema.org/name> "Alice" }`) {
+		t.Error("the JSON-LD dump must round-trip the loaded triple")
 	}
 }
