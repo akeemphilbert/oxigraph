@@ -415,14 +415,18 @@ fn rdf_format_from_name(name: &str) -> Option<RdfFormat> {
         "N-Triples" => Some(RdfFormat::NTriples),
         "N-Quads" => Some(RdfFormat::NQuads),
         "TriG" => Some(RdfFormat::TriG),
+        // JSON-LD carries a profile, so build it via the media type rather
+        // than a bare variant. The engine (oxrdfio) already supports it; the
+        // name map just did not expose it.
+        "JSON-LD" => RdfFormat::from_media_type("application/ld+json"),
         _ => None,
     }
 }
 
 /// Loads an RDF document into the store, atomically: either every quad
 /// is inserted or none is. `format` is one of "Turtle", "N-Triples",
-/// "N-Quads" or "TriG". `data` points to `len` bytes of document text
-/// and may be null when `len` is 0.
+/// "N-Quads", "TriG" or "JSON-LD". `data` points to `len` bytes of
+/// document text and may be null when `len` is 0.
 ///
 /// Returns 0 on success, or an `OXIGRAPH_ERROR_*` kind on failure with a
 /// caller-owned message written into `error_out`.
@@ -485,8 +489,8 @@ pub unsafe extern "C" fn oxigraph_load(
 }
 
 /// Serializes the whole store (default and named graphs) into a
-/// caller-owned string. `format` must be a dataset format ("N-Quads" or
-/// "TriG"); triples-only formats are rejected with
+/// caller-owned string. `format` must be a dataset format ("N-Quads",
+/// "TriG" or "JSON-LD"); triples-only formats are rejected with
 /// `OXIGRAPH_ERROR_UNSUPPORTED_FORMAT`, matching pyoxigraph's dump.
 ///
 /// Returns null on failure, writing a caller-owned message into
