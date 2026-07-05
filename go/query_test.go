@@ -148,3 +148,42 @@ func BenchmarkQuerySmallSelect(b *testing.B) {
 		}
 	}
 }
+
+func TestQuerySelectVars(t *testing.T) {
+	store := mustInMemoryStore(t)
+	results, err := store.Query(`
+		SELECT ?name ?age WHERE {
+			VALUES (?name ?age) { ("Antoine" 44) }
+		}`)
+	if err != nil {
+		t.Fatalf("Query: %v", err)
+	}
+	// Vars carries the projected variables, in declared order, so a caller
+	// can enumerate a solution's columns (Solution only offers Get(name)).
+	if got, want := results.Vars, []string{"name", "age"}; !equalStrings(got, want) {
+		t.Errorf("Vars = %v, want %v", got, want)
+	}
+}
+
+func TestQueryAskAndConstructHaveNoVars(t *testing.T) {
+	store := mustInMemoryStore(t)
+	ask, err := store.Query(`ASK { ?s ?p ?o }`)
+	if err != nil {
+		t.Fatalf("ASK: %v", err)
+	}
+	if len(ask.Vars) != 0 {
+		t.Errorf("ASK Vars = %v, want none", ask.Vars)
+	}
+}
+
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
